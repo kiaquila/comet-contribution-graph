@@ -174,6 +174,15 @@ if (!prNumber) {
 
 const pull = await request(`/repos/${owner}/${repo}/pulls/${prNumber}`);
 const headSha = pull.head.sha;
+// Lower bound for "is this trigger comment still valid for the current
+// head?". Any keyword-match trigger older than this timestamp belongs
+// to a previous head SHA and must not dedupe the trigger for the new
+// head, otherwise the gate would skip posting a fresh trigger and wait
+// out its timeout on a review that never starts.
+const headCommit = await request(`/repos/${owner}/${repo}/commits/${headSha}`);
+const headCommitTime = new Date(
+  headCommit.commit?.committer?.date || headCommit.commit?.author?.date || 0,
+).getTime();
 const markerAgentLine = `AI_REVIEW_AGENT: ${selectedAgent}`;
 const markerShaLine = `AI_REVIEW_SHA: ${headSha}`;
 const metadataMarker = `<!-- ai-review-gate:agent=${selectedAgent};sha=${headSha} -->`;
@@ -237,7 +246,10 @@ const ensureTriggerComment = async () => {
   // quote the trigger phrase, etc.) is excluded so workflow-authored
   // echoes of `@codex review` or `/gemini review` cannot short-circuit
   // the dedupe and cause the gate to wait out the timeout instead of
-  // posting a real trigger.
+  // posting a real trigger. The keyword branch also requires the
+  // comment to be at least as new as the current head commit — an
+  // older human trigger belongs to a previous SHA and its review can
+  // no longer land against the new head.
   const dedupeWindowMs = 30 * 60 * 1000;
   const triggerKeyword = triggerKeywords[selectedAgent];
   const recentComments = await listPaginated(
@@ -251,7 +263,8 @@ const ensureTriggerComment = async () => {
     if (
       triggerKeyword &&
       body.includes(triggerKeyword) &&
-      comment.user?.type === "User"
+      comment.user?.type === "User" &&
+      new Date(comment.created_at || 0).getTime() >= headCommitTime
     ) {
       return true;
     }

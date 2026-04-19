@@ -5,3 +5,9 @@ dist/
 .codex/
 .claude/
 .omc/
+
+# Local environment / secret files — workflows and scripts pull API
+# tokens from these paths. Track only `.env.example`-style templates.
+.env
+.env.local
+.env.*.local
