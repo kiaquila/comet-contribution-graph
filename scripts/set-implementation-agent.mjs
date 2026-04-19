@@ -5,7 +5,11 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const validImplementationAgents = new Set(["codex", "claude"]);
-const validReviewAgents = new Set(["codex", "claude", "gemini"]);
+// AI Review workflow (.github/workflows/ai-review.yml) gates on
+// AI_REVIEW_AGENT ∈ {'', 'gemini', 'codex'}. Selecting `claude` here
+// would leave PRs without an AI Review check until the variable is
+// manually reset, so the switcher refuses it up-front.
+const validReviewAgents = new Set(["codex", "gemini"]);
 
 const args = process.argv.slice(2);
 const options = {
@@ -48,11 +52,21 @@ if (!validImplementationAgents.has(options.implementation)) {
 }
 
 if (!options.review && options.syncReview) {
-  options.review = options.implementation;
+  // --sync-review mirrors the implementation pick onto AI_REVIEW_AGENT.
+  // When implementation=claude, mirroring would set the review backend
+  // to an unsupported value (see validReviewAgents above), so drop the
+  // review side of the sync and leave AI_REVIEW_AGENT untouched.
+  if (validReviewAgents.has(options.implementation)) {
+    options.review = options.implementation;
+  } else {
+    console.warn(
+      `--sync-review skipped for review agent: "${options.implementation}" is not a supported AI Review backend (allowed: codex, gemini). AI_REVIEW_AGENT left unchanged.`,
+    );
+  }
 }
 
 if (options.review && !validReviewAgents.has(options.review)) {
-  throw new Error("--review must be one of: codex, claude, gemini");
+  throw new Error("--review must be one of: codex, gemini");
 }
 
 const run = (command, commandArgs, { cwd, input } = {}) =>

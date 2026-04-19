@@ -150,10 +150,13 @@ const buildIssueCommentsPath = (sinceTimestamp) =>
     sinceTimestamp,
   )}`;
 
-const buildPullReviewCommentsPath = (sinceTimestamp) =>
-  `/repos/${owner}/${repo}/pulls/${prNumber}/comments?per_page=100&sort=updated&direction=desc${buildSinceQuery(
-    sinceTimestamp,
-  )}`;
+// Review-scoped comments endpoint. Used when classifying a specific
+// COMMENTED review: the PR-wide comments endpoint filtered by
+// `since=submitted_at` can silently drop inline findings created before
+// the review's submitted_at timestamp, which would cause the gate to
+// pass when it should block.
+const buildReviewScopedCommentsPath = (reviewId) =>
+  `/repos/${owner}/${repo}/pulls/${prNumber}/reviews/${reviewId}/comments?per_page=100`;
 const buildIssueTimelinePath = () =>
   `/repos/${owner}/${repo}/issues/${prNumber}/timeline?per_page=100`;
 
@@ -356,13 +359,8 @@ const classifyCodexReview = async (review) => {
     };
   }
 
-  const reviewComments = await listPaginated(
-    buildPullReviewCommentsPath(
-      review.submitted_at ? new Date(review.submitted_at).getTime() : 0,
-    ),
-  );
-  const commentsForReview = reviewComments.filter(
-    (comment) => comment.pull_request_review_id === review.id,
+  const commentsForReview = await listPaginated(
+    buildReviewScopedCommentsPath(review.id),
   );
 
   if (commentsForReview.length === 0) {
@@ -445,13 +443,8 @@ const classifyGeminiReview = async (review) => {
     };
   }
 
-  const reviewComments = await listPaginated(
-    buildPullReviewCommentsPath(
-      review.submitted_at ? new Date(review.submitted_at).getTime() : 0,
-    ),
-  );
-  const commentsForReview = reviewComments.filter(
-    (comment) => comment.pull_request_review_id === review.id,
+  const commentsForReview = await listPaginated(
+    buildReviewScopedCommentsPath(review.id),
   );
 
   if (commentsForReview.length === 0) {
