@@ -10,8 +10,8 @@
     <style>
       /* §1 — tunables */
       :root {
-        --comet-duration: 1.05s; /* traversal — 2.5× faster than v1's 2.6s */
-        --comet-hold: 0.9s;
+        --comet-duration: 0.48s; /* traversal */
+        --comet-hold: 1.35s;
         --comet-head-r: 4px;
         --comet-head-color: #ffffff;
         --comet-trail-width: 2px;
@@ -129,15 +129,14 @@
       }
 
       .bg-star {
-        fill: #ffffff;
         opacity: 0.15;
         animation: twinkle 4s infinite alternate;
       }
       .data-star {
         transition: r 0.3s ease;
       }
-      .peak-star {
-        animation: pulse 2s infinite alternate;
+      .peak-halo {
+        animation: halo-pulse 2s infinite alternate;
       }
 
       .comet-trail-path {
@@ -162,12 +161,12 @@
           opacity: 0.3;
         }
       }
-      @keyframes pulse {
+      @keyframes halo-pulse {
         0% {
-          filter: drop-shadow(0 0 4px hsl(48, 100%, 68%));
+          fill-opacity: 0.25;
         }
         100% {
-          filter: drop-shadow(0 0 10px hsl(48, 100%, 86%));
+          fill-opacity: 0.45;
         }
       }
 
@@ -177,6 +176,9 @@
           opacity: 0.15;
         }
         .peak-star {
+          animation: none;
+        }
+        .peak-halo {
           animation: none;
         }
         .comet-head {
@@ -327,8 +329,8 @@
       }
 
       // ── Animation constants ───────────────────────────────────────────────
-      const DURATION = 1050; // ms  (2.5× v1's 2600)
-      const HOLD = 900; // ms
+      const DURATION = 480; // ms
+      const HOLD = 1350; // ms
       const TAIL_LEN = 100; // px
 
       // ── Grid geometry ─────────────────────────────────────────────────────
@@ -353,16 +355,17 @@
       function nonPeakOpacity(count) {
         return 0.45 + Math.min(count, 10) * 0.05;
       }
-      function peakR(count) {
-        return 3.6 + (count - 15) * 0.35;
-      }
       function peakFill(count) {
+        if (count > 19) {
+          return `hsl(48,100%,92%)`;
+        }
         const l = lerp(68, 86, (count - 15) / 4);
         return `hsl(48,100%,${l.toFixed(1)}%)`;
       }
-      function peakFilter(count) {
-        const l = lerp(68, 86, (count - 15) / 4);
-        return `drop-shadow(0 0 4px hsl(48,100%,${l.toFixed(1)}%)) drop-shadow(0 0 9px hsl(45,90%,55%))`;
+      function peakHaloFilter(count, v) {
+        if (count <= 17) return `url(#halo-sm-${v})`;
+        if (count <= 19) return `url(#halo-md-${v})`;
+        return `url(#halo-lg-${v})`;
       }
 
       // ── easing ────────────────────────────────────────────────────────────
@@ -508,14 +511,21 @@
 
         let el = "";
 
-        // Background noise stars (Math.random — separate stream, fine for prototype)
+        // Background noise stars (separate deterministic stream per variant)
         const noiseSeed = makePRNG(initSeed ^ 0xdeadbeef);
         for (let i = 0; i < 80; i++) {
           const cx = noiseSeed() * 848 + padding;
           const cy = noiseSeed() * 112 + padding;
           const r = noiseSeed() * 1.5;
           const del = noiseSeed() * 4;
-          el += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" class="bg-star" style="animation-delay:-${del.toFixed(2)}s" />`;
+          const tintRoll = noiseSeed();
+          let starFill;
+          if (tintRoll < 0.72) starFill = "hsl(0,0%,100%)";
+          else if (tintRoll < 0.81) starFill = "hsl(200,45%,88%)";
+          else if (tintRoll < 0.88) starFill = "hsl(15,35%,80%)";
+          else if (tintRoll < 0.94) starFill = "hsl(130,22%,80%)";
+          else starFill = "hsl(268,32%,82%)";
+          el += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" class="bg-star" fill="${starFill}" style="animation-delay:-${del.toFixed(2)}s" />`;
         }
 
         // Comet path
@@ -533,6 +543,15 @@
               <stop offset="88%"  stop-color="#ffffff" stop-opacity="0.80" />
               <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
             </linearGradient>
+            <filter id="halo-sm-${variantLetter}" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" />
+            </filter>
+            <filter id="halo-md-${variantLetter}" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" />
+            </filter>
+            <filter id="halo-lg-${variantLetter}" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="5.0" />
+            </filter>
           </defs>
           <path d="${pathD}" class="constellation-path" />
           <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
@@ -545,18 +564,26 @@
           if (d.count <= 0) return;
 
           if (d.isPeak) {
-            const r = peakR(d.count);
             const fill = peakFill(d.count);
-            const filt = peakFilter(d.count);
-            el += `<circle cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" style="filter:${filt}" class="peak-star" />`;
-            if (d.shape === "spike") {
-              const armLen = r * 1.6;
-              const sw = 0.6;
-              el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
-              el += `<line x1="${(d.cx - armLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + armLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="${sw}" />`;
-              el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - armLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + armLen).toFixed(2)}" stroke="${fill}" stroke-width="${sw}" />`;
-              el += `</g>`;
-            }
+            const haloR = 3.5 + (d.count - 15) * 0.6;
+            const coreR = 0.9 + (d.count - 15) * 0.12;
+            const rayLen = 5.0 + (d.count - 15) * 1.0;
+            const diagLen = rayLen * 0.45;
+            const diagOff = diagLen * 0.707;
+            const haloFilter = peakHaloFilter(d.count, variantLetter);
+
+            el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
+            // 1. Halo
+            el += `<circle class="peak-halo" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${haloR.toFixed(2)}" fill="hsla(48,100%,74%,0.35)" filter="${haloFilter}" />`;
+            // 2. Diagonal rays
+            el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
+            el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
+            // 3. Primary H + V rays
+            el += `<line x1="${(d.cx - rayLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + rayLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="0.5" stroke-linecap="round" />`;
+            el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - rayLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + rayLen).toFixed(2)}" stroke="${fill}" stroke-width="0.5" stroke-linecap="round" />`;
+            // 4. Core
+            el += `<circle class="peak-core" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${coreR.toFixed(2)}" fill="${fill}" />`;
+            el += `</g>`;
           } else {
             // median filter: skip non-peaks at or below median
             if (d.count <= median) return;
@@ -566,11 +593,14 @@
             const opacity = nonPeakOpacity(d.count);
             el += `<circle cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" opacity="${opacity.toFixed(2)}" class="data-star" />`;
             if (d.shape === "spike") {
-              const armLen = r * 1.6;
-              const sw = 0.6;
+              const armLen = r * 2.8;
+              const diagLen = armLen * 0.45;
+              const diagOff = diagLen * 0.707;
               el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
-              el += `<line x1="${(d.cx - armLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + armLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="${sw}" opacity="${opacity.toFixed(2)}" />`;
-              el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - armLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + armLen).toFixed(2)}" stroke="${fill}" stroke-width="${sw}" opacity="${opacity.toFixed(2)}" />`;
+              el += `<line x1="${(d.cx - armLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + armLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="0.6" opacity="${opacity.toFixed(2)}" />`;
+              el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - armLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + armLen).toFixed(2)}" stroke="${fill}" stroke-width="0.6" opacity="${opacity.toFixed(2)}" />`;
+              el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.30" stroke-linecap="round" />`;
+              el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.30" stroke-linecap="round" />`;
               el += `</g>`;
             }
           }
