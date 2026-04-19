@@ -19,7 +19,13 @@ concurrency:
 
 jobs:
   claude:
+    # Gate requires the trigger comment to live on a pull request so the
+    # implementation agent can only mutate branches owned by an existing PR.
+    # Without `github.event.issue.pull_request`, plain issue comments would
+    # still reach the Claude action on the default branch with write
+    # permissions, violating the repo's PR-only delivery model.
     if: >
+      github.event.issue.pull_request != null &&
       contains(github.event.comment.body, '@claude') &&
       !contains(github.event.comment.body, '@claude review once') &&
       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
@@ -98,8 +104,13 @@ jobs:
         if: steps.pr.outputs.is_pull_request == 'true'
         uses: actions/checkout@v6
         with:
+          # Pin to the resolved head SHA captured at context-resolution time
+          # so a push landing between `Resolve PR context` and this checkout
+          # cannot swap the workspace to a different commit. The branch ref
+          # is still available to the Claude action through the PR event
+          # context for any push-back it needs to perform.
           fetch-depth: 0
-          ref: ${{ steps.pr.outputs.head_ref }}
+          ref: ${{ steps.pr.outputs.head_sha }}
 
       - name: Checkout default branch
         if: steps.pr.outputs.is_pull_request != 'true'

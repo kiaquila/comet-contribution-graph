@@ -220,24 +220,24 @@ const triggerKeywords = {
   claude: "@claude review once",
 };
 
-const isReviewerBotLogin = (login) =>
-  codexReviewerLogins.has(login) ||
-  geminiReviewerLogins.has(login) ||
-  claudeReviewerLogins.has(login);
-
 const ensureTriggerComment = async () => {
   // Dedupe: skip posting a duplicate trigger when either
   // (a) a gate-originated trigger comment for the current head SHA
   //     already exists in the last 30 minutes (matched via the hidden
   //     metadataMarker, which encodes both agent and headSha), or
-  // (b) a non-reviewer author posted the bare backend trigger keyword
+  // (b) a human author posted the bare backend trigger keyword
   //     (e.g. `@codex review`, `/gemini review`, `@claude review once`)
   //     in the same window. Case (b) covers trusted humans who already
   //     triggered native review via ai-command-policy.yml so the gate
   //     does not fan out a duplicate native review or add rate-limit
-  //     pressure. Comments authored by any of the review backend bots
-  //     themselves are excluded so connector replies and summary
-  //     comments are never treated as triggers.
+  //     pressure.
+  //
+  // Only `user.type === "User"` accounts qualify for (b). Any bot
+  // (reviewer connectors, `github-actions[bot]`, policy-reply bots that
+  // quote the trigger phrase, etc.) is excluded so workflow-authored
+  // echoes of `@codex review` or `/gemini review` cannot short-circuit
+  // the dedupe and cause the gate to wait out the timeout instead of
+  // posting a real trigger.
   const dedupeWindowMs = 30 * 60 * 1000;
   const triggerKeyword = triggerKeywords[selectedAgent];
   const recentComments = await listPaginated(
@@ -251,7 +251,7 @@ const ensureTriggerComment = async () => {
     if (
       triggerKeyword &&
       body.includes(triggerKeyword) &&
-      !isReviewerBotLogin(comment.user?.login || "")
+      comment.user?.type === "User"
     ) {
       return true;
     }
