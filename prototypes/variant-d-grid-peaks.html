@@ -2,25 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Variant D: Grid Peaks</title>
+    <title>Variant D prototypes — corner cases</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* §1 — tunables (all brief §1 constants live here) */
+      /* §1 — tunables */
       :root {
-        --comet-duration: 1.05s; /* traversal only; total cycle = duration + hold */
-        --comet-hold: 1.55s; /* pause at tail end before re-entering */
-        --comet-head-r: 4px; /* head circle radius */
-        --comet-head-color: #ffffff; /* head fill */
-        --comet-trail-width: 2px; /* trail stroke-width */
-        --comet-tail-len: 130; /* stroke-dasharray tail segment, px */
-        --jitter-amp: 0.32; /* ±32% of cellSize per axis */
-        --star-r-min: 0.8; /* non-peak minimum radius at count=1 */
-        --star-r-max: 3; /* non-peak cap; peak starts above this */
-        --peak-r-base: 3.6; /* smallest peak radius (count=15) */
-        --peak-r-step: 0.35; /* added per count unit above 15 */
+        --comet-duration: 1.05s; /* traversal — 2.5× faster than v1's 2.6s */
+        --comet-hold: 0.9s;
+        --comet-head-r: 4px;
+        --comet-head-color: #ffffff;
+        --comet-trail-width: 2px;
+        --comet-tail-len: 100;
+        --jitter-amp: 0.32;
+        --star-r-min: 0.8;
+        --star-r-max: 3;
+        --peak-r-base: 3.6;
+        --peak-r-step: 0.35;
       }
 
       body {
@@ -42,11 +42,11 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 60px;
       }
 
       .header {
         text-align: center;
-        margin-bottom: 60px;
         color: #7aacd8;
       }
       .header h1 {
@@ -57,8 +57,24 @@
       .header p {
         font-size: 14px;
         margin: 0;
-        max-width: 600px;
+        max-width: 640px;
         line-height: 1.5;
+      }
+
+      .variant-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .variant-section h2 {
+        color: #7aacd8;
+        font-size: 13px;
+        font-weight: 400;
+        margin: 0;
+        opacity: 0.85;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
       }
 
       .graph-wrapper {
@@ -75,7 +91,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        height: 112px; /* 7 rows * 16px */
+        height: 112px;
         font-size: 10px;
         color: #7aacd8;
         padding-right: 15px;
@@ -108,11 +124,10 @@
         top: -10px;
         left: -10px;
         width: 868px;
-        height: 132px; /* with padding for glow */
+        height: 132px;
         overflow: visible;
       }
 
-      /* Star Styles */
       .bg-star {
         fill: #ffffff;
         opacity: 0.15;
@@ -125,16 +140,13 @@
         animation: pulse 2s infinite alternate;
       }
 
-      /* §2 — comet trail path */
       .comet-trail-path {
         fill: none;
-        stroke: url(#cometTrail);
         stroke-width: var(--comet-trail-width, 2px);
         stroke-linecap: round;
         stroke-linejoin: round;
       }
 
-      /* Path Styles */
       .constellation-path {
         fill: none;
         stroke: rgba(255, 255, 255, 0.1);
@@ -150,19 +162,15 @@
           opacity: 0.3;
         }
       }
-      /* Pulse animates only the glow so per-peak `r` attribute (3.6–5.0) is
-         preserved — earlier versions hardcoded r here and shrank the brightest
-         peaks below their computed radius. */
       @keyframes pulse {
         0% {
-          filter: url(#glow-gold);
+          filter: drop-shadow(0 0 4px hsl(48, 100%, 68%));
         }
         100% {
-          filter: url(#glow-gold);
+          filter: drop-shadow(0 0 10px hsl(48, 100%, 86%));
         }
       }
 
-      /* §8 — Respect prefers-reduced-motion: freeze every animation */
       @media (prefers-reduced-motion: reduce) {
         .bg-star {
           animation: none;
@@ -170,10 +178,8 @@
         }
         .peak-star {
           animation: none;
-          /* r is set via SVG attribute; filter stays at the base glow */
         }
-        /* comet-head hidden; targets <use href="#comet-head-shape"> */
-        #comet-head {
+        .comet-head {
           display: none;
         }
       }
@@ -181,320 +187,191 @@
   </head>
   <body>
     <div class="header">
-      <h1>Variant D: Grid Peaks</h1>
+      <h1>Variant D prototypes — corner cases</h1>
       <p>
-        Strict structural layout with hidden cells. Activity dictates star size.
-        The absolute peak contribution days are marked in gold and connected by
-        a glowing white comet trace.
+        Multi-variant exploration: five sky scenarios rendered on one page.
+        Comet speed 2.5× v1. Peak spikes rotated randomly. Stars sized by
+        contribution count. Median threshold filters out low-activity days in
+        dense data sets. Covers normal, heavy-daily, sparse, edge-2-peak, and
+        moderate contributor profiles.
       </p>
     </div>
 
-    <!-- §7 — a11y: <section> landmark names the region; the inner <svg> owns
-         the detailed accessible name/description via <title>+<desc>. Labels
-         are deliberately distinct so a screen reader does not announce the
-         same sentence twice when entering the region then the image. -->
-    <section class="graph-wrapper" aria-label="Contribution graph">
-      <div class="labels-x" id="months"></div>
-      <div class="labels-y">
-        <span>Mon</span><span></span><span>Wed</span><span></span
-        ><span>Fri</span><span></span><span></span>
+    <!-- Variant A -->
+    <section class="variant-section" aria-label="Variant A: Normal contributor">
+      <h2>A — Normal contributor (seed 124, ~50% days active, 7 peaks)</h2>
+      <div class="graph-wrapper">
+        <div class="labels-x" id="months-a"></div>
+        <div class="labels-y">
+          <span>Mon</span><span></span><span>Wed</span><span></span
+          ><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+          <svg id="sky-a" role="img" aria-labelledby="title-a desc-a">
+            <title id="title-a">
+              Contribution activity — normal contributor
+            </title>
+            <desc id="desc-a">
+              Night-sky grid, ~50% days active, seven peak days highlighted in
+              gold, animated comet tracing them.
+            </desc>
+          </svg>
+        </div>
       </div>
-      <div class="svg-container">
-        <svg id="sky-grid" role="img" aria-labelledby="sky-title sky-desc">
-          <title id="sky-title">Contribution activity over the past year</title>
-          <desc id="sky-desc">
-            A night-sky grid of 371 cells spanning 53 weeks. Each star's size
-            and brightness encodes daily commit count; the seven most active
-            days are highlighted in gold and connected by an animated comet
-            tracing the year's peak moments.
-          </desc>
-        </svg>
+    </section>
+
+    <!-- Variant B -->
+    <section
+      class="variant-section"
+      aria-label="Variant B: Heavy daily committer"
+    >
+      <h2>
+        B — Heavy daily committer (seed 7, ~95% days active, median filters low
+        days)
+      </h2>
+      <div class="graph-wrapper">
+        <div class="labels-x" id="months-b"></div>
+        <div class="labels-y">
+          <span>Mon</span><span></span><span>Wed</span><span></span
+          ><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+          <svg id="sky-b" role="img" aria-labelledby="title-b desc-b">
+            <title id="title-b">
+              Contribution activity — heavy daily committer
+            </title>
+            <desc id="desc-b">
+              Night-sky grid, nearly every day active; median threshold filters
+              out low-count days so the sky stays readable.
+            </desc>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant C -->
+    <section class="variant-section" aria-label="Variant C: Sparse pioneer">
+      <h2>C — Sparse pioneer (seed 303, ~8% days active, 3 peaks)</h2>
+      <div class="graph-wrapper">
+        <div class="labels-x" id="months-c"></div>
+        <div class="labels-y">
+          <span>Mon</span><span></span><span>Wed</span><span></span
+          ><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+          <svg id="sky-c" role="img" aria-labelledby="title-c desc-c">
+            <title id="title-c">Contribution activity — sparse pioneer</title>
+            <desc id="desc-c">
+              Very sparse sky; only 3 peak days, comet still traces them.
+            </desc>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant D -->
+    <section
+      class="variant-section"
+      aria-label="Variant D: Edge — exactly 2 peaks"
+    >
+      <h2>D — Edge: exactly 2 peaks, no background (seed 99)</h2>
+      <div class="graph-wrapper">
+        <div class="labels-x" id="months-d"></div>
+        <div class="labels-y">
+          <span>Mon</span><span></span><span>Wed</span><span></span
+          ><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+          <svg id="sky-d" role="img" aria-labelledby="title-d desc-d">
+            <title id="title-d">
+              Contribution activity — minimum viable: 2 peaks only
+            </title>
+            <desc id="desc-d">
+              Edge case: only two contribution days, comet sweeps between them.
+            </desc>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant E -->
+    <section class="variant-section" aria-label="Variant E: Moderate user">
+      <h2>E — Moderate user (seed 55, ~20% days active, 5 peaks)</h2>
+      <div class="graph-wrapper">
+        <div class="labels-x" id="months-e"></div>
+        <div class="labels-y">
+          <span>Mon</span><span></span><span>Wed</span><span></span
+          ><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+          <svg id="sky-e" role="img" aria-labelledby="title-e desc-e">
+            <title id="title-e">Contribution activity — moderate user</title>
+            <desc id="desc-e">
+              Night-sky grid with ~20% active days and 5 peak moments.
+            </desc>
+          </svg>
+        </div>
       </div>
     </section>
 
     <script>
-      // Deterministic PRNG — seed stays 124 for deterministic output
-      let seed = 124;
-      function rng() {
-        let t = (seed += 0x6d2b79f5);
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      // ── Deterministic PRNG (Mulberry32) ──────────────────────────────────
+      function makePRNG(initSeed) {
+        let s = initSeed;
+        return function rng() {
+          let t = (s += 0x6d2b79f5);
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
       }
 
-      // §1 — JS constants matching CSS vars
-      const DURATION = 1050; // ms — --comet-duration
-      const HOLD = 1550; // ms — --comet-hold
-      const TAIL_LEN = 130; // px — --comet-tail-len
+      // ── Animation constants ───────────────────────────────────────────────
+      const DURATION = 1050; // ms  (2.5× v1's 2600)
+      const HOLD = 900; // ms
+      const TAIL_LEN = 100; // px
 
-      const data = [];
+      // ── Grid geometry ─────────────────────────────────────────────────────
       const cellSize = 16;
-      const padding = 10; // offset inside SVG
-      const jitterAmp = 0.32; // --jitter-amp
+      const padding = 10;
+      const jitterAmp = 0.32;
 
-      // non-peak star radius (continuous map)
-      function nonPeakR(count) {
-        return Math.min(0.8 + count * 0.22, 3.0);
-      }
-
-      // non-peak fill (HSL lerp, cold blue)
+      // ── Star helpers ──────────────────────────────────────────────────────
       function lerp(a, b, t) {
         return a + (b - a) * t;
       }
 
+      function nonPeakR(count) {
+        return Math.min(0.8 + count * 0.22, 3.0);
+      }
       function nonPeakFill(count) {
         const t = Math.min(count, 10) / 10;
-        const h = 214; // fixed hue — cold blue
         const s = lerp(42, 72, t);
         const l = lerp(28, 82, t);
-        return `hsl(${h},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
+        return `hsl(214,${s.toFixed(0)}%,${l.toFixed(0)}%)`;
       }
-
-      // §4 — non-peak opacity (widened ramp)
       function nonPeakOpacity(count) {
-        return Math.min(0.35 + Math.min(count, 10) * 0.065, 1.0);
+        return 0.45 + Math.min(count, 10) * 0.05;
       }
-
-      // peak star radius
       function peakR(count) {
         return 3.6 + (count - 15) * 0.35;
       }
-
-      // peak fill (hsl 48, warm gold, lightness ramp)
       function peakFill(count) {
         const l = lerp(68, 86, (count - 15) / 4);
         return `hsl(48,100%,${l.toFixed(1)}%)`;
       }
-
-      // §4 — glow filter by count tier (SVG filter refs)
-      function glowFilter(count) {
-        if (count <= 3) return "";
-        if (count <= 7) return "url(#glow-soft)";
-        return "url(#glow-bright)";
+      function peakFilter(count) {
+        const l = lerp(68, 86, (count - 15) / 4);
+        return `drop-shadow(0 0 4px hsl(48,100%,${l.toFixed(1)}%)) drop-shadow(0 0 9px hsl(45,90%,55%))`;
       }
 
-      // §3 — shape assignment (v2: 4 shapes + hero logic)
-      function shapeFor(d, isHero) {
-        // Call 5 — shape roll (consumed for all paths to keep RNG stable)
-        const roll = rng();
-
-        if (d.isPeak) {
-          return isHero ? "five" : "twinkle";
-        }
-
-        if (d.count >= 8) {
-          // count 8+: 60% cross, 40% twinkle
-          return roll < 0.6 ? "cross" : "twinkle";
-        }
-
-        if (d.count >= 4) {
-          // count 4-7: 80% dot, 20% cross
-          return roll < 0.8 ? "dot" : "cross";
-        }
-
-        // count 1-3: always dot
-        return "dot";
+      // ── easing ────────────────────────────────────────────────────────────
+      function ease(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       }
 
-      // 1. Generate Data — RNG call order per brief:
-      //    (1) background activity roll, (2) count roll / peak count roll,
-      //    (3) jx, (4) jy, (5) shape roll, (6) rotDeg, (7) scaleMul
-      const peakDays = [24, 75, 140, 195, 250, 310, 345];
-
-      for (let i = 0; i < 371; i++) {
-        // 53 weeks * 7 days — matches the 7×53 grid layout
-        let count = 0;
-        // (1) Background activity roll
-        if (rng() > 0.6) {
-          // (2) count roll for active non-peak days
-          count = Math.floor(rng() * 4) + 1;
-        }
-
-        // Force 7 distinct peaks throughout the year.
-        // (2) peak count roll — brief: "existing rng() call inside peakDays branch must remain"
-        if (peakDays.includes(i)) count = 15 + Math.floor(rng() * 5);
-
-        let col = Math.floor(i / 7);
-        let row = i % 7;
-
-        // (3) jx, (4) jy applied before peak detection finalises
-        const jx = (rng() * 2 - 1) * jitterAmp * cellSize;
-        const jy = (rng() * 2 - 1) * jitterAmp * cellSize;
-
-        let cx = col * cellSize + cellSize / 2 + padding + jx;
-        let cy = row * cellSize + cellSize / 2 + padding + jy;
-
-        data.push({ day: i, count, cx, cy, isPeak: false });
-      }
-
-      // 2. Identify Top 7 Peaks chronologically
-      let sorted = [...data].sort((a, b) => b.count - a.count);
-      let topDays = sorted.slice(0, 7).sort((a, b) => a.day - b.day);
-      topDays.forEach((td) => (data[td.day].isPeak = true));
-
-      // Hero: highest-count peak day (earliest if tie)
-      const heroDay = topDays.reduce(
-        (best, d) => (data[d.day].count > data[best.day].count ? d : best),
-        topDays[0],
-      );
-      data[heroDay.day].isHero = true;
-
-      // (5) shape roll, (6) rotDeg, (7) scaleMul — done after isPeak/isHero set
-      data.forEach((d) => {
-        d.shape = shapeFor(d, d.isHero === true);
-        d.rotDeg = (rng() * 2 - 1) * 45; // call 6
-        d.scaleMul = 1 + (rng() * 2 - 1) * 0.15; // call 7
-      });
-
-      const svg = document.getElementById("sky-grid");
-      const monthsDiv = document.getElementById("months");
-      let elements = "";
-
-      // 3. Add random background stars (noise) — uses Math.random(), separate stream
-      // Tier 1: 100 micro-dust — no animation, zero GPU overhead
-      for (let i = 0; i < 100; i++) {
-        const cx = Math.random() * 848 + padding;
-        const cy = Math.random() * 112 + padding;
-        const r = 0.2 + Math.random() * 0.3;
-        const op = 0.08 + Math.random() * 0.1;
-        elements += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" opacity="${op.toFixed(2)}" />`;
-      }
-
-      // Tier 2: 50 near-dust — visible, participate in twinkle
-      for (let i = 0; i < 50; i++) {
-        const cx = Math.random() * 848 + padding;
-        const cy = Math.random() * 112 + padding;
-        const r = 0.5 + Math.random() * 0.7;
-        const op = 0.2 + Math.random() * 0.2;
-        const delay = Math.random() * 4;
-        elements += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" opacity="${op.toFixed(2)}" class="bg-star" style="animation-delay:-${delay.toFixed(1)}s" />`;
-      }
-
-      // 4. Draw Path for Comet — built from jittered peak coords
-      let pathCoords = topDays.map((d) => `${d.cx},${d.cy}`);
-      let pathD = `M ${pathCoords.join(" L ")}`;
-
-      // §2/§4/§6 — defs: gradient, star symbols, filter defs, comet-head symbol
-      elements += `
-        <defs>
-            <linearGradient id="cometTrail" gradientUnits="userSpaceOnUse">
-                <stop offset="0%"   stop-color="#c8e0ff" stop-opacity="0" />
-                <stop offset="40%"  stop-color="#c8e0ff" stop-opacity="0.05" />
-                <stop offset="68%"  stop-color="#d8ecff" stop-opacity="0.42" />
-                <stop offset="88%"  stop-color="#ffffff" stop-opacity="0.80" />
-                <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
-            </linearGradient>
-
-            <symbol id="star-dot" viewBox="-4 -4 8 8" overflow="visible">
-              <circle cx="0" cy="0" r="1" fill="currentColor" />
-            </symbol>
-
-            <symbol id="star-cross" viewBox="-8 -8 16 16" overflow="visible">
-              <circle cx="0" cy="0" r="1.4" fill="currentColor" />
-              <line x1="0" y1="-3.2" x2="0"  y2="3.2"  stroke="currentColor" stroke-width="0.6" />
-              <line x1="-3.2" y1="0" x2="3.2" y2="0"   stroke="currentColor" stroke-width="0.6" />
-            </symbol>
-
-            <symbol id="star-twinkle" viewBox="-12 -12 24 24" overflow="visible">
-              <circle cx="0" cy="0" r="1.6" fill="currentColor" />
-              <line x1="0" y1="-7" x2="0"  y2="7"  stroke="currentColor" stroke-width="0.4" opacity="0.85" />
-              <line x1="-7" y1="0" x2="7"  y2="0"  stroke="currentColor" stroke-width="0.4" opacity="0.85" />
-              <line x1="-3.5" y1="-3.5" x2="3.5" y2="3.5" stroke="currentColor" stroke-width="0.25" opacity="0.45" />
-              <line x1="3.5"  y1="-3.5" x2="-3.5" y2="3.5" stroke="currentColor" stroke-width="0.25" opacity="0.45" />
-            </symbol>
-
-            <symbol id="star-five" viewBox="-10 -10 20 20" overflow="visible">
-              <polygon
-                points="0,-5.5 1.3,-2.0 4.7,-1.7 2.3,0.9 3.4,4.4
-                        0,2.8 -3.4,4.4 -2.3,0.9 -4.7,-1.7 -1.3,-2.0"
-                fill="currentColor"
-                stroke="currentColor"
-                stroke-width="0.3"
-                stroke-linejoin="round"
-              />
-            </symbol>
-
-            <filter id="glow-none" x="0%" y="0%" width="100%" height="100%">
-              <feComposite in="SourceGraphic" in2="SourceGraphic" operator="over" />
-            </filter>
-
-            <filter id="glow-soft" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-bright" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3.0" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-gold" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur1" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur2" />
-              <feMerge>
-                <feMergeNode in="blur2" />
-                <feMergeNode in="blur1" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <symbol id="comet-head-shape" viewBox="-12 -12 24 24" overflow="visible">
-              <circle cx="0" cy="0" r="9"   fill="rgba(200,224,255,0.15)" filter="url(#glow-bright)" />
-              <circle cx="0" cy="0" r="5"   fill="rgba(255,255,255,0.35)" />
-              <circle cx="0" cy="0" r="2.5" fill="#ffffff"               filter="url(#glow-soft)" />
-              <line x1="0" y1="-6" x2="0"  y2="6"  stroke="#ffffff" stroke-width="0.4" opacity="0.70" />
-              <line x1="-6" y1="0" x2="6"  y2="0"  stroke="#ffffff" stroke-width="0.4" opacity="0.70" />
-            </symbol>
-        </defs>
-        <path d="${pathD}" class="constellation-path" />
-        <path d="${pathD}" class="comet-trail-path" id="comet-trail" />
-        <use id="comet-head" href="#comet-head-shape" x="-100" y="-100" />
-        `;
-
-      // 5. Draw Data Stars — non-peaks and peaks via <use> with transform
-      // Symbol base radii (natural radius of each symbol in its viewBox coordinate space)
-      const baseR = { dot: 1, cross: 1.4, twinkle: 1.6, five: 5.5 };
-
-      data.forEach((d) => {
-        if (d.count > 0) {
-          if (d.isPeak) {
-            const r = peakR(d.count);
-            const fill = peakFill(d.count);
-            const symbolId = d.shape === "five" ? "star-five" : "star-twinkle";
-            const br = baseR[d.shape === "five" ? "five" : "twinkle"];
-            const needsRot = true; // twinkle and five both rotate
-            const rot = d.rotDeg;
-            const scaleFactor = (r * d.scaleMul) / br;
-            elements += `<use href="#${symbolId}" color="${fill}" transform="translate(${d.cx.toFixed(2)},${d.cy.toFixed(2)}) rotate(${rot.toFixed(1)}) scale(${scaleFactor.toFixed(3)})" filter="url(#glow-gold)" class="peak-star" />`;
-          } else {
-            // non-peak star
-            const r = nonPeakR(d.count);
-            const fill = nonPeakFill(d.count);
-            const opacity = nonPeakOpacity(d.count);
-            const gf = glowFilter(d.count);
-            const symbolId = `star-${d.shape}`;
-            const br = baseR[d.shape];
-            const needsRot = ["cross", "twinkle"].includes(d.shape);
-            const rot = needsRot ? d.rotDeg : 0;
-            const scaleFactor = (r * d.scaleMul) / br;
-            const filterAttr = gf ? ` filter="${gf}"` : "";
-            elements += `<use href="#${symbolId}" color="${fill}" opacity="${opacity.toFixed(2)}" transform="translate(${d.cx.toFixed(2)},${d.cy.toFixed(2)}) rotate(${rot.toFixed(1)}) scale(${scaleFactor.toFixed(3)})"${filterAttr} class="data-star" />`;
-          }
-        }
-      });
-
-      // Append the title/desc before other SVG content so screen readers get them first,
-      // then inject all generated elements after the existing title/desc nodes.
-      svg.insertAdjacentHTML("beforeend", elements);
-
-      // 6. Labels Logic (Approximate months)
-      const months = [
+      // ── Month labels ──────────────────────────────────────────────────────
+      const MONTHS = [
         "Jan",
         "Feb",
         "Mar",
@@ -508,91 +385,323 @@
         "Nov",
         "Dec",
       ];
-      let lastMonth = -1;
-      for (let col = 0; col < 53; col++) {
-        let date = new Date(2023, 0, col * 7 + 1);
-        if (date.getMonth() !== lastMonth) {
-          lastMonth = date.getMonth();
-          let label = document.createElement("span");
-          label.className = "month-label";
-          label.innerText = months[lastMonth];
-          label.style.left = `${col * cellSize}px`;
-          monthsDiv.appendChild(label);
-        }
-      }
-
-      // §1/§8 — Animate Comet (skipped under prefers-reduced-motion: reduce)
-      const trailEl = document.getElementById("comet-trail");
-      const headEl = document.getElementById("comet-head");
-      const grad = document.getElementById("cometTrail");
-      const pathEl = trailEl; // trail shares the same d as the constellation
-      const total = pathEl.getTotalLength();
-
-      const prefersReducedMotion =
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      // easing: cubic-bezier(0.25,0,0.55,1) approximation
-      function ease(t) {
-        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      }
-
-      function tick(elapsed) {
-        const raw = Math.min(elapsed / DURATION, 1);
-        const t = ease(raw);
-        const headDist = t * total;
-        const tailDist = Math.max(0, headDist - TAIL_LEN);
-
-        // Head position — <use> uses x/y not cx/cy
-        const hp = pathEl.getPointAtLength(headDist);
-        headEl.setAttribute("x", hp.x);
-        headEl.setAttribute("y", hp.y);
-
-        // Trail: clip path to [tailDist, headDist]
-        const visLen = headDist - tailDist;
-        trailEl.style.strokeDasharray = `${visLen} ${total}`;
-        trailEl.style.strokeDashoffset = `-${tailDist}`;
-
-        // Update gradient endpoints along segment direction
-        const tp = pathEl.getPointAtLength(tailDist);
-        grad.setAttribute("x1", tp.x);
-        grad.setAttribute("y1", tp.y);
-        grad.setAttribute("x2", hp.x);
-        grad.setAttribute("y2", hp.y);
-      }
-
-      function loop() {
-        const start = performance.now();
-        function frame(now) {
-          const elapsed = now - start;
-          if (elapsed < DURATION) {
-            tick(elapsed);
-            requestAnimationFrame(frame);
-          } else {
-            // Snap head off-screen, clear trail, hold before restarting
-            headEl.setAttribute("x", -100);
-            headEl.setAttribute("y", -100);
-            trailEl.style.strokeDasharray = "none";
-            setTimeout(loop, HOLD);
+      function buildMonthLabels(containerId) {
+        const div = document.getElementById(containerId);
+        let lastMonth = -1;
+        for (let col = 0; col < 53; col++) {
+          const date = new Date(2023, 0, col * 7 + 1);
+          if (date.getMonth() !== lastMonth) {
+            lastMonth = date.getMonth();
+            const span = document.createElement("span");
+            span.className = "month-label";
+            span.innerText = MONTHS[lastMonth];
+            span.style.left = `${col * cellSize}px`;
+            div.appendChild(span);
           }
         }
-        requestAnimationFrame(frame);
       }
 
-      if (!prefersReducedMotion) {
-        loop();
-      } else {
-        // §8 — Show full static trail; head hidden via CSS
-        trailEl.style.strokeDasharray = "none";
-        trailEl.style.strokeDashoffset = "0";
-        // Position gradient statically across the full path bbox
-        const sp = pathEl.getPointAtLength(0);
-        const ep = pathEl.getPointAtLength(total);
-        grad.setAttribute("x1", sp.x);
-        grad.setAttribute("y1", sp.y);
-        grad.setAttribute("x2", ep.x);
-        grad.setAttribute("y2", ep.y);
+      // ── Core renderer ─────────────────────────────────────────────────────
+      // config = {
+      //   svgId, monthsId, variantLetter,
+      //   seed,
+      //   activityProb,    // 0–1 probability of a non-peak day being active
+      //   countRange,      // [min, max] inclusive for background days
+      //   peakDayIndices,  // array of day indices (0-370) to force as peaks
+      //   peakCountRange,  // [min, max] for peak counts (min must be >= 15 for peakR())
+      // }
+      function renderSky(config) {
+        const {
+          svgId,
+          monthsId,
+          variantLetter,
+          seed: initSeed,
+          activityProb,
+          countRange,
+          peakDayIndices,
+          peakCountRange,
+        } = config;
+
+        const rng = makePRNG(initSeed);
+        const data = [];
+
+        // 1. Generate data
+        for (let i = 0; i < 371; i++) {
+          let count = 0;
+          // (1) background activity roll
+          if (rng() < activityProb) {
+            // (2) count roll
+            count =
+              countRange[0] +
+              Math.floor(rng() * (countRange[1] - countRange[0] + 1));
+          }
+          // Force peak days — consume same RNG slot (2) for peak too
+          if (peakDayIndices.includes(i)) {
+            count =
+              peakCountRange[0] +
+              Math.floor(rng() * (peakCountRange[1] - peakCountRange[0] + 1));
+          }
+
+          const col = Math.floor(i / 7);
+          const row = i % 7;
+          // (3) jx, (4) jy
+          const jx = (rng() * 2 - 1) * jitterAmp * cellSize;
+          const jy = (rng() * 2 - 1) * jitterAmp * cellSize;
+
+          const cx = col * cellSize + cellSize / 2 + padding + jx;
+          const cy = row * cellSize + cellSize / 2 + padding + jy;
+          data.push({
+            day: i,
+            count,
+            cx,
+            cy,
+            isPeak: false,
+            shape: "circle",
+            angle: 0,
+          });
+        }
+
+        // 2. Median threshold (non-peak stars rendered only above median)
+        const activeCounts = data
+          .filter((d) => d.count > 0)
+          .map((d) => d.count)
+          .sort((a, b) => a - b);
+        const median = activeCounts.length
+          ? activeCounts[Math.floor(activeCounts.length / 2)]
+          : 0;
+
+        // 3. Identify top-K peaks (clamped [2, 7])
+        const sorted = [...data].sort((a, b) => b.count - a.count);
+        const threshold = Math.max(5, median * 2);
+        const eligible = sorted.filter((d) => d.count >= threshold);
+        const K = Math.min(7, Math.max(2, eligible.length));
+        const topDays = sorted.slice(0, K).sort((a, b) => a.day - b.day);
+        topDays.forEach((td) => {
+          data[td.day].isPeak = true;
+        });
+
+        // 4. Shape + rotation assignment (after isPeak is set)
+        //    Extra rng() call for rotation — fresh call after shape, keeps stream consistent
+        data.forEach((d) => {
+          if (d.isPeak) {
+            rng(); // shape slot (always spike)
+            d.shape = "spike";
+          } else if (d.count >= 8) {
+            d.shape = rng() < 0.3 ? "spike" : "circle";
+          } else {
+            rng();
+            d.shape = "circle";
+          }
+          // rotation for all spike stars
+          if (d.shape === "spike") {
+            d.angle = (rng() * 2 - 1) * 45; // ±45°
+          } else {
+            rng(); // consume to keep determinism
+          }
+        });
+
+        // 5. Build SVG HTML
+        const svg = document.getElementById(svgId);
+        const gradId = `cometTrail-${variantLetter}`;
+        const trailId = `comet-trail-${variantLetter}`;
+        const headId = `comet-head-${variantLetter}`;
+
+        let el = "";
+
+        // Background noise stars (Math.random — separate stream, fine for prototype)
+        const noiseSeed = makePRNG(initSeed ^ 0xdeadbeef);
+        for (let i = 0; i < 80; i++) {
+          const cx = noiseSeed() * 848 + padding;
+          const cy = noiseSeed() * 112 + padding;
+          const r = noiseSeed() * 1.5;
+          const del = noiseSeed() * 4;
+          el += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" class="bg-star" style="animation-delay:-${del.toFixed(2)}s" />`;
+        }
+
+        // Comet path
+        const pathCoords = topDays.map(
+          (d) => `${d.cx.toFixed(2)},${d.cy.toFixed(2)}`,
+        );
+        const pathD = `M ${pathCoords.join(" L ")}`;
+
+        el += `
+          <defs>
+            <linearGradient id="${gradId}" gradientUnits="userSpaceOnUse">
+              <stop offset="0%"   stop-color="#c8e0ff" stop-opacity="0" />
+              <stop offset="30%"  stop-color="#c8e0ff" stop-opacity="0.08" />
+              <stop offset="65%"  stop-color="#d8ecff" stop-opacity="0.45" />
+              <stop offset="88%"  stop-color="#ffffff" stop-opacity="0.80" />
+              <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
+            </linearGradient>
+          </defs>
+          <path d="${pathD}" class="constellation-path" />
+          <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
+          <circle id="${headId}" r="4" fill="#ffffff" class="comet-head"
+            style="filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9));" />
+        `;
+
+        // Data stars
+        data.forEach((d) => {
+          if (d.count <= 0) return;
+
+          if (d.isPeak) {
+            const r = peakR(d.count);
+            const fill = peakFill(d.count);
+            const filt = peakFilter(d.count);
+            el += `<circle cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" style="filter:${filt}" class="peak-star" />`;
+            if (d.shape === "spike") {
+              const armLen = r * 1.6;
+              const sw = 0.6;
+              el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
+              el += `<line x1="${(d.cx - armLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + armLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="${sw}" />`;
+              el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - armLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + armLen).toFixed(2)}" stroke="${fill}" stroke-width="${sw}" />`;
+              el += `</g>`;
+            }
+          } else {
+            // median filter: skip non-peaks at or below median
+            if (d.count <= median) return;
+
+            const r = nonPeakR(d.count);
+            const fill = nonPeakFill(d.count);
+            const opacity = nonPeakOpacity(d.count);
+            el += `<circle cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" opacity="${opacity.toFixed(2)}" class="data-star" />`;
+            if (d.shape === "spike") {
+              const armLen = r * 1.6;
+              const sw = 0.6;
+              el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
+              el += `<line x1="${(d.cx - armLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + armLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="${sw}" opacity="${opacity.toFixed(2)}" />`;
+              el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - armLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + armLen).toFixed(2)}" stroke="${fill}" stroke-width="${sw}" opacity="${opacity.toFixed(2)}" />`;
+              el += `</g>`;
+            }
+          }
+        });
+
+        svg.insertAdjacentHTML("beforeend", el);
+        buildMonthLabels(monthsId);
+
+        // 6. Animate comet
+        const trailEl = document.getElementById(trailId);
+        const headEl = document.getElementById(headId);
+        const grad = document.getElementById(gradId);
+        const pathEl = trailEl;
+        const total = pathEl.getTotalLength();
+
+        const prefersReduced =
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function tick(elapsed) {
+          const raw = Math.min(elapsed / DURATION, 1);
+          const t = ease(raw);
+          const headDist = t * total;
+          const tailDist = Math.max(0, headDist - TAIL_LEN);
+
+          const hp = pathEl.getPointAtLength(headDist);
+          headEl.setAttribute("cx", hp.x);
+          headEl.setAttribute("cy", hp.y);
+
+          const visLen = headDist - tailDist;
+          trailEl.style.strokeDasharray = `${visLen} ${total}`;
+          trailEl.style.strokeDashoffset = `-${tailDist}`;
+
+          const tp = pathEl.getPointAtLength(tailDist);
+          grad.setAttribute("x1", tp.x);
+          grad.setAttribute("y1", tp.y);
+          grad.setAttribute("x2", hp.x);
+          grad.setAttribute("y2", hp.y);
+        }
+
+        function loop() {
+          const start = performance.now();
+          function frame(now) {
+            const elapsed = now - start;
+            if (elapsed < DURATION) {
+              tick(elapsed);
+              requestAnimationFrame(frame);
+            } else {
+              headEl.setAttribute("cx", -100);
+              trailEl.style.strokeDasharray = "none";
+              setTimeout(loop, HOLD);
+            }
+          }
+          requestAnimationFrame(frame);
+        }
+
+        if (!prefersReduced) {
+          loop();
+        } else {
+          trailEl.style.strokeDasharray = "none";
+          trailEl.style.strokeDashoffset = "0";
+          const sp = pathEl.getPointAtLength(0);
+          const ep = pathEl.getPointAtLength(total);
+          grad.setAttribute("x1", sp.x);
+          grad.setAttribute("y1", sp.y);
+          grad.setAttribute("x2", ep.x);
+          grad.setAttribute("y2", ep.y);
+        }
       }
+
+      // ── Variant definitions ───────────────────────────────────────────────
+
+      // A — Normal contributor
+      renderSky({
+        svgId: "sky-a",
+        monthsId: "months-a",
+        variantLetter: "a",
+        seed: 124,
+        activityProb: 0.5,
+        countRange: [1, 4],
+        peakDayIndices: [24, 75, 140, 195, 250, 310, 345],
+        peakCountRange: [15, 19],
+      });
+
+      // B — Heavy daily committer
+      renderSky({
+        svgId: "sky-b",
+        monthsId: "months-b",
+        variantLetter: "b",
+        seed: 7,
+        activityProb: 0.95,
+        countRange: [1, 8],
+        peakDayIndices: [30, 90, 150, 210, 270, 330],
+        peakCountRange: [20, 30],
+      });
+
+      // C — Sparse pioneer
+      renderSky({
+        svgId: "sky-c",
+        monthsId: "months-c",
+        variantLetter: "c",
+        seed: 303,
+        activityProb: 0.08,
+        countRange: [1, 3],
+        peakDayIndices: [60, 180, 300],
+        peakCountRange: [15, 18],
+      });
+
+      // D — Edge: exactly 2 peaks, nothing else
+      renderSky({
+        svgId: "sky-d",
+        monthsId: "months-d",
+        variantLetter: "d",
+        seed: 99,
+        activityProb: 0,
+        countRange: [1, 1],
+        peakDayIndices: [70, 280],
+        peakCountRange: [15, 18],
+      });
+
+      // E — Moderate user
+      renderSky({
+        svgId: "sky-e",
+        monthsId: "months-e",
+        variantLetter: "e",
+        seed: 55,
+        activityProb: 0.2,
+        countRange: [1, 5],
+        peakDayIndices: [40, 110, 190, 265, 340],
+        peakCountRange: [15, 20],
+      });
     </script>
   </body>
 </html>
