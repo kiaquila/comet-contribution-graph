@@ -99,7 +99,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ steps.pr.outputs.checkout_ref }}
+          ref: ${{ steps.pr.outputs.head_ref }}
 
       - name: Checkout default branch
         if: steps.pr.outputs.is_pull_request != 'true'

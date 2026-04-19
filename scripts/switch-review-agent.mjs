@@ -43,9 +43,16 @@ for (let index = 0; index < args.length; index += 1) {
   }
 }
 
-const validAgents = new Set(["codex", "gemini", "claude"]);
+const validAgents = new Set(["codex", "gemini"]);
 if (!validAgents.has(options.to)) {
-  throw new Error(`--to must be one of: codex, gemini, claude\n\n${usage}`);
+  throw new Error(
+    `--to must be one of: codex, gemini.\n\n` +
+      `Note: claude is not a supported AI Review backend in this repository. ` +
+      `The AI Review workflow gate accepts only '', 'gemini', or 'codex'; ` +
+      `switching to claude would leave every PR without a functioning AI Review ` +
+      `check until the variable is manually reset. See ` +
+      `docs_comet/project/devops/review-trigger-automation.md for the matrix.\n\n${usage}`,
+  );
 }
 
 // All three review backends are triggered by a human-authored comment on
