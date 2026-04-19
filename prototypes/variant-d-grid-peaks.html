@@ -146,6 +146,15 @@
           filter: drop-shadow(0 0 10px #ffd97a);
         }
       }
+
+      /* Respect prefers-reduced-motion: freeze twinkle + peak pulse in the
+         final frame. The JS-driven comet animation is also skipped below. */
+      @media (prefers-reduced-motion: reduce) {
+        .bg-star,
+        .peak-star {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -184,8 +193,8 @@
       const padding = 10; // offset inside SVG
 
       // 1. Generate Data with specific peaks
-      for (let i = 0; i < 364; i++) {
-        // 52 weeks * 7 days
+      for (let i = 0; i < 371; i++) {
+        // 53 weeks * 7 days — matches the 7×53 grid layout
         let count = 0;
         // Background base activity
         if (rng() > 0.6) count = Math.floor(rng() * 4) + 1;
@@ -269,7 +278,7 @@
         "Dec",
       ];
       let lastMonth = -1;
-      for (let col = 0; col < 52; col++) {
+      for (let col = 0; col < 53; col++) {
         let date = new Date(2023, 0, col * 7 + 1);
         if (date.getMonth() !== lastMonth) {
           lastMonth = date.getMonth();
@@ -281,19 +290,29 @@
         }
       }
 
-      // 7. Animate Comet
+      // 7. Animate Comet (skipped under prefers-reduced-motion: reduce so
+      //    motion-sensitive users see a static trace instead of an infinite
+      //    loop; matching CSS @media rule above freezes twinkle + pulse).
       const comet = document.getElementById("comet");
       const length = comet.getTotalLength();
-      comet.style.strokeDasharray = `120 ${length + 120}`; // Length of the comet tail
+      const prefersReducedMotion =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      comet.animate(
-        [{ strokeDashoffset: length }, { strokeDashoffset: -120 }],
-        {
-          duration: 8000,
-          iterations: Infinity,
-          easing: "ease-in-out",
-        },
-      );
+      if (prefersReducedMotion) {
+        // Reveal the full comet trace as a static graphic.
+        comet.style.strokeDasharray = "none";
+      } else {
+        comet.style.strokeDasharray = `120 ${length + 120}`; // Length of the comet tail
+        comet.animate(
+          [{ strokeDashoffset: length }, { strokeDashoffset: -120 }],
+          {
+            duration: 8000,
+            iterations: Infinity,
+            easing: "ease-in-out",
+          },
+        );
+      }
     </script>
   </body>
 </html>
