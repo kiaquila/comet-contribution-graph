@@ -82,7 +82,7 @@ jobs:
           docs_updated=false
           while IFS= read -r f; do
             case "$f" in
-              docs_comet/*.md|docs_comet/**/*.md|AGENTS.md|CLAUDE.md|.github/workflows/*.yml|.github/workflows/*.yaml)
+              docs_comet/*.md|docs_comet/**/*.md|specs/*.md|specs/**/*.md|AGENTS.md|CLAUDE.md|.github/workflows/*.yml|.github/workflows/*.yaml)
                 docs_updated=true
                 break
                 ;;
