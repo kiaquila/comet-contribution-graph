@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Variant D: Grid Peaks</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0; padding: 40px; background-color: #010209;
+            background-image: 
+                radial-gradient(circle at 50% -20%, rgba(26, 42, 74, 0.6) 0%, transparent 60%),
+                radial-gradient(circle at 80% 120%, rgba(42, 26, 58, 0.4) 0%, transparent 50%);
+            font-family: 'Space Mono', monospace; display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .header { text-align: center; margin-bottom: 60px; color: #7aacd8; }
+        .header h1 { color: #ffffff; font-size: 20px; margin: 0 0 8px 0; }
+        .header p { font-size: 14px; margin: 0; max-width: 600px; line-height: 1.5;}
+        
+        .graph-wrapper {
+            position: relative; display: flex;
+            background: rgba(1, 2, 9, 0.4);
+            border: 1px solid rgba(122, 172, 216, 0.1);
+            border-radius: 12px; padding: 40px 30px 30px 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .labels-y {
+            display: flex; flex-direction: column; justify-content: space-between;
+            height: 112px; /* 7 rows * 16px */
+            font-size: 10px; color: #7aacd8; padding-right: 15px;
+            margin-top: 6px; opacity: 0.8;
+        }
+
+        .labels-x {
+            position: absolute; top: 15px; left: 85px; width: 848px;
+            display: flex; font-size: 10px; color: #7aacd8; opacity: 0.8;
+        }
+        .month-label { position: absolute; }
+
+        .svg-container {
+            width: 848px; height: 112px;
+            position: relative;
+        }
+        
+        svg {
+            position: absolute; top: -10px; left: -10px;
+            width: 868px; height: 132px; /* with padding for glow */
+            overflow: visible;
+        }
+
+        /* Star Styles */
+        .bg-star { fill: #ffffff; opacity: 0.15; animation: twinkle 4s infinite alternate; }
+        .data-star { transition: r 0.3s ease; }
+        .peak-star { fill: #ffd97a; filter: drop-shadow(0 0 6px #ffd97a); animation: pulse 2s infinite alternate; }
+        
+        /* Path Styles */
+        .constellation-path { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 1; stroke-linejoin: round;}
+        .comet-path {
+            fill: none; stroke: url(#cometGlow); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+        }
+
+        @keyframes twinkle { 0% { opacity: 0.05; } 100% { opacity: 0.3; } }
+        @keyframes pulse { 0% { r: 3.5; filter: drop-shadow(0 0 4px #ffd97a); } 100% { r: 4.5; filter: drop-shadow(0 0 10px #ffd97a); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Variant D: Grid Peaks</h1>
+        <p>Strict structural layout with hidden cells. Activity dictates star size. The absolute peak contribution days are marked in gold and connected by a glowing white comet trace.</p>
+    </div>
+
+    <div class="graph-wrapper">
+        <div class="labels-x" id="months"></div>
+        <div class="labels-y">
+            <span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span>
+        </div>
+        <div class="svg-container">
+            <svg id="sky-grid"></svg>
+        </div>
+    </div>
+
+    <script>
+        // Deterministic PRNG
+        let seed = 124;
+        function rng() {
+            let t = seed += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+
+        const data = [];
+        const cellSize = 16;
+        const padding = 10; // offset inside SVG
+        
+        // 1. Generate Data with specific peaks
+        for(let i=0; i<364; i++) { // 52 weeks * 7 days
+            let count = 0;
+            // Background base activity
+            if (rng() > 0.6) count = Math.floor(rng() * 4) + 1;
+            
+            // Force 7 distinct peaks throughout the year
+            const peakDays = [24, 75, 140, 195, 250, 310, 345];
+            if (peakDays.includes(i)) count = 15 + Math.floor(rng() * 5); // Massive count
+
+            let col = Math.floor(i / 7);
+            let row = i % 7;
+            let cx = col * cellSize + (cellSize/2) + padding;
+            let cy = row * cellSize + (cellSize/2) + padding;
+
+            data.push({ day: i, count, cx, cy, isPeak: false });
+        }
+
+        // 2. Identify Top 7 Peaks chronologically
+        let sorted = [...data].sort((a, b) => b.count - a.count);
+        let topDays = sorted.slice(0, 7).sort((a, b) => a.day - b.day);
+        topDays.forEach(td => data[td.day].isPeak = true);
+
+        const svg = document.getElementById('sky-grid');
+        const monthsDiv = document.getElementById('months');
+        let elements = "";
+
+        // 3. Add random background stars (noise)
+        for(let i=0; i<80; i++) {
+            let cx = Math.random() * 848 + padding;
+            let cy = Math.random() * 112 + padding;
+            let r = Math.random() * 1.5;
+            let delay = Math.random() * 4;
+            elements += `<circle cx="${cx}" cy="${cy}" r="${r}" class="bg-star" style="animation-delay:-${delay}s" />`;
+        }
+
+        // 4. Draw Path for Comet
+        let pathCoords = topDays.map(d => `${d.cx},${d.cy}`);
+        let pathD = `M ${pathCoords.join(' L ')}`;
+        
+        elements += `
+        <defs>
+            <linearGradient id="cometGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+                <stop offset="50%" stop-color="#ffffff" stop-opacity="0.8" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="1" />
+            </linearGradient>
+        </defs>
+        <path d="${pathD}" class="constellation-path" />
+        <path d="${pathD}" class="comet-path" id="comet" />
+        `;
+
+        // 5. Draw Data Stars
+        data.forEach((d, i) => {
+            if (d.count > 0) {
+                if (d.isPeak) {
+                    elements += `<circle cx="${d.cx}" cy="${d.cy}" r="3.5" class="peak-star" />`;
+                } else {
+                    let r = d.count < 3 ? 1 : d.count < 6 ? 2 : 2.5;
+                    let color = d.count < 3 ? "#3a6090" : d.count < 6 ? "#7aacd8" : "#c8e0ff";
+                    let opacity = d.count < 3 ? 0.6 : 0.9;
+                    elements += `<circle cx="${d.cx}" cy="${d.cy}" r="${r}" fill="${color}" opacity="${opacity}" class="data-star" />`;
+                }
+            }
+        });
+
+        svg.innerHTML = elements;
+
+        // 6. Labels Logic (Approximate months)
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let lastMonth = -1;
+        for (let col = 0; col < 52; col++) {
+            let date = new Date(2023, 0, col * 7 + 1);
+            if (date.getMonth() !== lastMonth) {
+                lastMonth = date.getMonth();
+                let label = document.createElement('span');
+                label.className = 'month-label';
+                label.innerText = months[lastMonth];
+                label.style.left = `${col * cellSize}px`;
+                monthsDiv.appendChild(label);
+            }
+        }
+
+        // 7. Animate Comet
+        const comet = document.getElementById('comet');
+        const length = comet.getTotalLength();
+        comet.style.strokeDasharray = `120 ${length + 120}`; // Length of the comet tail
+        
+        comet.animate([
+            { strokeDashoffset: length },
+            { strokeDashoffset: -120 }
+        ], {
+            duration: 8000,
+            iterations: Infinity,
+            easing: 'ease-in-out'
+        });
+
+    </script>
+</body>
+</html>
