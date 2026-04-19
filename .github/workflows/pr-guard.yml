@@ -1,0 +1,123 @@
+name: PR Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to check
+        required: false
+        type: string
+      head_ref:
+        description: PR head ref to compare
+        required: false
+        type: string
+      base_ref:
+        description: PR base ref to compare
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha || github.sha }}
+
+      - name: Resolve diff refs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_ref="${{ github.event.pull_request.base.sha }}"
+            head_ref="${{ github.event.pull_request.head.sha }}"
+          else
+            base_ref="${{ inputs.base_ref || 'HEAD~1' }}"
+            head_ref="${{ inputs.head_ref || 'HEAD' }}"
+          fi
+
+          echo "BASE_REF=$base_ref" >> "$GITHUB_ENV"
+          echo "HEAD_REF=$head_ref" >> "$GITHUB_ENV"
+
+      - name: Check docs coverage for product and infra changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          changed=$(git diff --name-only "${BASE_REF}...${HEAD_REF}")
+
+          echo "Changed files:"
+          echo "$changed"
+
+          tracked_change=false
+          while IFS= read -r f; do
+            case "$f" in
+              prototypes/*|prototypes/**/*|action.yml|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|vercel.json|scripts/*.mjs|scripts/**/*.mjs|src/*|src/**/*|public/*|public/**/*|assets/*|assets/**/*)
+                tracked_change=true
+                break
+                ;;
+            esac
+          done <<< "$changed"
+
+          if [ "$tracked_change" = "false" ]; then
+            echo "No tracked app/build changes — guard passes."
+            exit 0
+          fi
+
+          docs_updated=false
+          while IFS= read -r f; do
+            case "$f" in
+              docs_comet/*.md|docs_comet/**/*.md|specs/*.md|specs/**/*.md|AGENTS.md|CLAUDE.md|.github/workflows/*.yml|.github/workflows/*.yaml)
+                docs_updated=true
+                break
+                ;;
+            esac
+          done <<< "$changed"
+
+          if [ "$docs_updated" = "false" ]; then
+            echo ""
+            echo "ERROR: Product or infra changes landed without any durable docs update."
+            echo ""
+            echo "When modifying prototypes/, action.yml, scripts/, build config, or future app source — update at least one of:"
+            echo "  - docs_comet/"
+            echo "  - specs/<feature-id>/"
+            echo "  - AGENTS.md or CLAUDE.md"
+            echo "  - .github/workflows/ (if orchestration changed)"
+            echo ""
+            exit 1
+          fi
+
+          echo "Docs coverage OK."
+
+      - name: Require complete feature memory for product changes
+        run: node scripts/check-feature-memory.mjs "$BASE_REF" "$HEAD_REF"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate baseline files
+        run: pnpm run check:repo

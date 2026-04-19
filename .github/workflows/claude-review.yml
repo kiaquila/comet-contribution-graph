@@ -1,0 +1,113 @@
+name: Claude Review
+
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: claude-review-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    if: >
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude review once') &&
+      contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      vars.AI_REVIEW_AGENT == 'claude'
+    name: Claude Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Bootstrap checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve PR context
+        id: pr
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/resolve-pr-context.mjs
+
+      - name: Resolve Claude review safety
+        id: safety
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          claude_review_permitted="true"
+          block_reason=""
+
+          if [ "${{ steps.pr.outputs.is_fork }}" = "true" ]; then
+            claude_review_permitted="false"
+            block_reason="Claude review is disabled for fork PRs because this issue_comment workflow runs with repository secrets."
+          fi
+
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            claude_review_permitted="false"
+            block_reason="Claude review is selected, but repository secret ANTHROPIC_API_KEY is not configured."
+          fi
+
+          echo "claude_review_permitted=$claude_review_permitted" >> "$GITHUB_OUTPUT"
+          echo "block_reason=$block_reason" >> "$GITHUB_OUTPUT"
+
+      - name: Explain unavailable Claude review path
+        if: steps.safety.outputs.claude_review_permitted != 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const message = [
+              "Claude review could not run for the selected PR context.",
+              "",
+              `Reason: ${process.env.BLOCK_REASON}`,
+              "",
+              "Switch `AI_REVIEW_AGENT` back to `gemini`, or configure `ANTHROPIC_API_KEY` before selecting Claude review.",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: message,
+            });
+        env:
+          BLOCK_REASON: ${{ steps.safety.outputs.block_reason }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+
+      - name: Fail unavailable Claude review path
+        if: steps.safety.outputs.claude_review_permitted != 'true'
+        shell: bash
+        run: |
+          echo "${{ steps.safety.outputs.block_reason }}"
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.pr.outputs.checkout_ref }}
+
+      - name: Run Claude review agent
+        uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --max-turns 24
+            --model claude-opus-4-6
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --system-prompt "Act as the selected pull-request reviewer for this repository. Use repository guidance from CLAUDE.md, AGENTS.md, and docs_comet/. Review pull request #${{ steps.pr.outputs.pr_number }} at head commit ${{ steps.pr.outputs.head_sha }}. Review the unified diff first, then inspect only changed files or directly referenced code that is strictly necessary to confirm a finding. Focus on material issues in this static prototype: contribution data accuracy (7×53 grid, week alignment), animation/SVG output stability (comet path, prefers-reduced-motion), accessibility (contrast, no seizure-risk effects), bundle size for future GitHub Action embed, supply-chain risks of CDN deps, maintainability of SVG generation. Do not inspect workflow history or unrelated files unless they are changed. In your final top-level Claude comment, begin with exactly these three lines: AI_REVIEW_AGENT: claude ; AI_REVIEW_SHA: ${{ steps.pr.outputs.head_sha }} ; AI_REVIEW_OUTCOME: pass|advisory|block. After those marker lines, provide a short high-signal summary in no more than 6 sentences. Use AI_REVIEW_OUTCOME=pass only when there are no material findings. Use AI_REVIEW_OUTCOME=advisory when findings are low-severity and should not block merge. Use AI_REVIEW_OUTCOME=block when at least one finding should block merge. Use inline PR comments only when practical. Do not modify code, do not create commits, and do not push branches in this workflow."

@@ -1,0 +1,174 @@
+name: AI Command Policy
+
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  actions: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  policy:
+    if: >
+      github.event.comment.user.type == 'User' &&
+      (
+        contains(github.event.comment.body, '@claude') ||
+        contains(github.event.comment.body, '@codex') ||
+        contains(github.event.comment.body, '/gemini review') ||
+        contains(github.event.comment.body, '@gemini-code-assist review')
+      )
+    name: ai-command-policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate command against repository policy
+        uses: actions/github-script@v8
+        env:
+          AI_IMPLEMENTATION_AGENT: ${{ vars.AI_IMPLEMENTATION_AGENT }}
+          AI_REVIEW_AGENT: ${{ vars.AI_REVIEW_AGENT }}
+        with:
+          script: |
+            const body = (context.payload.comment?.body || "").toLowerCase();
+            const defaults = { implementation: "claude", review: "codex" };
+            const trustedAssociations = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
+            let kind = null;
+            let requestedAgent = null;
+
+            if (body.includes("@claude review once")) {
+              kind = "review";
+              requestedAgent = "claude";
+            } else if (body.includes("@codex review")) {
+              kind = "review";
+              requestedAgent = "codex";
+            } else if (body.includes("/gemini review") || body.includes("@gemini-code-assist review")) {
+              kind = "review";
+              requestedAgent = "gemini";
+            } else if (body.includes("@claude")) {
+              kind = "implementation";
+              requestedAgent = "claude";
+            } else if (body.includes("@codex")) {
+              kind = "implementation";
+              requestedAgent = "codex";
+            }
+
+            if (!kind || !requestedAgent) {
+              return;
+            }
+
+            const authorAssociation = context.payload.comment?.author_association || "NONE";
+
+            if (!trustedAssociations.has(authorAssociation)) {
+              const message = [
+                "AI command rejected.",
+                "",
+                `Comments from \`${authorAssociation}\` are not allowed to trigger repository AI workflows.`,
+                "Use a trusted repository actor account (owner, member, or collaborator).",
+              ].join("\n");
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message,
+              });
+
+              core.setFailed(message);
+              return;
+            }
+
+            const isPullRequestContext =
+              context.eventName === "issue_comment" &&
+              Boolean(context.payload.issue?.pull_request);
+
+            if (kind === "review" && !isPullRequestContext) {
+              const message = [
+                "Invalid review command context.",
+                "",
+                "Review commands are only valid as top-level pull request comments.",
+                "Use `@claude review once`, `/gemini review`, or `@codex review` on the target pull request.",
+              ].join("\n");
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message,
+              });
+
+              core.setFailed(message);
+              return;
+            }
+
+            const selectedAgent = (
+              kind === "review" ? process.env.AI_REVIEW_AGENT : process.env.AI_IMPLEMENTATION_AGENT
+            ) || defaults[kind];
+
+            if (selectedAgent === requestedAgent) {
+              if (
+                kind === "review" &&
+                requestedAgent === "claude" &&
+                context.payload.issue?.number
+              ) {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: "ai-review.yml",
+                  ref: context.payload.repository.default_branch,
+                  inputs: {
+                    pr_number: String(context.payload.issue.number),
+                    trigger_mode: "skip",
+                  },
+                });
+                core.info(`Dispatched AI Review for PR #${context.payload.issue.number}`);
+              }
+
+              if (kind === "review" && requestedAgent === "codex") {
+                core.info(
+                  "Codex review comments stay native-only so the PR-linked AI Review check can keep polling the current head.",
+                );
+              }
+
+              if (kind === "review" && requestedAgent === "gemini") {
+                core.info(
+                  "Gemini review comments stay native-only to avoid canceling the PR-linked AI Review check.",
+                );
+              }
+
+              core.info(`Command matches ${kind} policy: ${requestedAgent}`);
+              return;
+            }
+
+            const expectedCommand = kind === "review"
+              ? (
+                  selectedAgent === "claude"
+                    ? "@claude review once"
+                    : selectedAgent === "gemini"
+                      ? "/gemini review"
+                      : "@codex review"
+                )
+              : (selectedAgent === "claude" ? "@claude <task brief>" : "start the Codex task from Codex app or Codex web");
+
+            const scopeLabel = kind === "review" ? "review" : "implementation";
+            const message = [
+              "Policy mismatch for AI command routing.",
+              "",
+              `Requested ${scopeLabel} agent: \`${requestedAgent}\``,
+              `Selected ${scopeLabel} agent from repository policy: \`${selectedAgent}\``,
+              "",
+              `Use ${selectedAgent === "codex" && kind === "implementation" ? expectedCommand : `\`${expectedCommand}\``} or update the repository variable before rerunning the command.`,
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message,
+            });
+
+            core.setFailed(message);

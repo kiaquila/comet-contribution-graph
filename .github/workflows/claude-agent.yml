@@ -1,0 +1,129 @@
+name: Claude Agent
+
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: claude-agent-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # Gate requires the trigger comment to live on a pull request so the
+    # implementation agent can only mutate branches owned by an existing PR.
+    # Without `github.event.issue.pull_request`, plain issue comments would
+    # still reach the Claude action on the default branch with write
+    # permissions, violating the repo's PR-only delivery model.
+    if: >
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '@claude') &&
+      !contains(github.event.comment.body, '@claude review once') &&
+      contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      vars.AI_IMPLEMENTATION_AGENT == 'claude'
+    name: Claude Agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Bootstrap checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve PR context
+        id: pr
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/resolve-pr-context.mjs
+
+      - name: Resolve Claude agent safety
+        id: safety
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          claude_agent_permitted="true"
+          block_reason=""
+
+          if [ "${{ steps.pr.outputs.is_pull_request }}" = "true" ] && [ "${{ steps.pr.outputs.is_fork }}" = "true" ]; then
+            claude_agent_permitted="false"
+            block_reason="Claude implementation is disabled for fork PRs because this issue_comment workflow runs with repository secrets."
+          fi
+
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            claude_agent_permitted="false"
+            block_reason="Claude implementation is selected, but repository secret ANTHROPIC_API_KEY is not configured."
+          fi
+
+          echo "claude_agent_permitted=$claude_agent_permitted" >> "$GITHUB_OUTPUT"
+          echo "block_reason=$block_reason" >> "$GITHUB_OUTPUT"
+
+      - name: Explain unavailable Claude agent path
+        if: steps.safety.outputs.claude_agent_permitted != 'true' && steps.pr.outputs.is_pull_request == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const message = [
+              "Claude implementation could not run for the selected PR context.",
+              "",
+              `Reason: ${process.env.BLOCK_REASON}`,
+              "",
+              "Use Codex for this branch, or configure `ANTHROPIC_API_KEY` before selecting Claude implementation.",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: message,
+            });
+        env:
+          BLOCK_REASON: ${{ steps.safety.outputs.block_reason }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+
+      - name: Fail unavailable Claude agent path
+        if: steps.safety.outputs.claude_agent_permitted != 'true'
+        shell: bash
+        run: |
+          echo "${{ steps.safety.outputs.block_reason }}"
+          exit 1
+
+      - name: Checkout PR head
+        if: steps.pr.outputs.is_pull_request == 'true'
+        uses: actions/checkout@v6
+        with:
+          # Pin to the resolved head SHA captured at context-resolution time
+          # so a push landing between `Resolve PR context` and this checkout
+          # cannot swap the workspace to a different commit. The branch ref
+          # is still available to the Claude action through the PR event
+          # context for any push-back it needs to perform.
+          fetch-depth: 0
+          ref: ${{ steps.pr.outputs.head_sha }}
+
+      - name: Checkout default branch
+        if: steps.pr.outputs.is_pull_request != 'true'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude implementation agent
+        uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --max-turns 20
+            --model claude-opus-4-6
+            --allowedTools "Bash(pnpm:*),Bash(node:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*)"
+            --system-prompt "Act as the selected implementation agent for this repository. Follow repository guidance from CLAUDE.md, AGENTS.md, and docs_comet/. Treat the triggering GitHub comment as the scoped assignment. This repository contains a static prototype site for a cinematic GitHub contribution graph; product code lives in `prototypes/variant-d-grid-peaks.html` (initial bootstrap state). If this command was posted on pull request #${{ steps.pr.outputs.pr_number }}, work against head commit ${{ steps.pr.outputs.head_sha }} and keep all changes on that PR branch. Keep the app deployable with pnpm run build, update docs_comet/ when the change affects architecture or behavior, and avoid unrelated rewrites."
