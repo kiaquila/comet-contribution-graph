@@ -408,7 +408,7 @@
         const rng = makePRNG(year);
         const dataPoints = [];
 
-        days.forEach(([date, count], i) {
+        days.forEach(([date, count], i) => {
           // Position in grid: column = floor((startDow + i) / 7), row = (startDow + i) % 7
           const gridPos = startDow + i;
           const col = Math.floor(gridPos / 7);
