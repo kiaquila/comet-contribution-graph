@@ -41,8 +41,10 @@ HTML prototypes using ESLint v9 + `eslint-plugin-html`. Rules in force:
 - `unicorn/no-array-callback-reference` — catches the forEach arity trap: passing a
   named function with default params directly to `.forEach()` causes the third callback
   arg (the array itself) to silently override those defaults.
-- `prefer-regex-literals` — flags `new RegExp(dynamicString)` where a literal would be
-  safer; prevents unescaped interpolation bugs.
+- `no-restricted-syntax` (AST selector) — flags `new RegExp(dynamicString)` where the
+  pattern is not a literal; prevents unsafe runtime regex construction from unvalidated
+  input. (`prefer-regex-literals` only flags literal-wrapping redundancy, not dynamic
+  patterns — this rule closes that gap.)
 - `no-invalid-regexp` — syntax-checks RegExp patterns at lint time.
 - Parser in `sourceType: "script"` mode by default; `eslint-plugin-html` auto-switches
   to `sourceType: "module"` for `<script type="module">` tags.
