@@ -88,13 +88,14 @@ function syntaxCheck(htmlFiles) {
   return { failed, parsed };
 }
 
-// Given a Function node's params array, return { count, withDefaults }.
+// Given a Function node's params array, return parameter count and the number
+// of defaults that appear after the first argument.
 function inspectParams(params) {
   const count = params.length;
-  const withDefaults = params.filter(
-    (p) => p.type === "AssignmentPattern",
-  ).length;
-  return { count, withDefaults };
+  const defaultsAfterFirst = params
+    .slice(1)
+    .filter((p) => p.type === "AssignmentPattern").length;
+  return { count, defaultsAfterFirst };
 }
 
 function isNode(value) {
@@ -285,13 +286,13 @@ function arityCheck(parsed) {
         // ancestors[] includes `node` itself at the end; exclude it.
         const fnNode = resolveBinding(ancestors.slice(0, -1), name);
         if (!fnNode) return;
-        const { count, withDefaults } = inspectParams(fnNode.params);
-        if (count >= 2 && withDefaults > 0) {
+        const { count, defaultsAfterFirst } = inspectParams(fnNode.params);
+        if (count >= 2 && defaultsAfterFirst > 0) {
           console.error(
             `\n✗ ARITY TRAP  ${rel(file)}  (block ${blockIndex + 1})`,
           );
           console.error(
-            `  .forEach(${name}) — '${name}' has ${count} params, ${withDefaults} with defaults`,
+            `  .forEach(${name}) — '${name}' has ${count} params, ${defaultsAfterFirst} default(s) after param #1`,
           );
           console.error(
             `  forEach passes (element, index, array) — defaults get overwritten`,

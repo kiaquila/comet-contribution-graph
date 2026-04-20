@@ -49,7 +49,7 @@ Two incidents where inline JS bugs shipped through green CI motivated a dedicate
 `scripts/check-prototype-js.mjs` runs on every CI push and PR:
 
 - **Step 1 — Syntax check** (`acorn.parse`): parses each inline `<script>` block with mode-aware grammar (`sourceType: "script"` vs `"module"`), so module syntax (`import`/`export`/top-level `await`) is validated correctly. Any parse error fails CI with file + block index.
-- **Step 2 — Arity trap check** (`acorn-walk.ancestor`): finds `.forEach(namedFn)` call-sites, resolves `namedFn` in lexical scope, then inspects function params. If a callback has ≥2 params and at least one default value (`AssignmentPattern`), CI fails with a fix hint: `.forEach((item) => namedFn(item))`.
+- **Step 2 — Arity trap check** (`acorn-walk.ancestor`): finds `.forEach(namedFn)` call-sites, resolves `namedFn` in lexical scope, then inspects function params. If a callback has ≥2 params and any default value after the first parameter (`AssignmentPattern`), CI fails with a fix hint: `.forEach((item) => namedFn(item))`.
 - Scope resolver details:
   - handles concise arrow bodies safely (expression-bodied arrows do not crash scope scanning)
   - accounts for `var` hoisting from nested blocks within function/global scope so nested `if/for` declarations are still detected

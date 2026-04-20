@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readdirSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -29,7 +29,7 @@ for (const filePath of htmlFiles) {
     const uncaught = [];
     page.on("pageerror", (err) => uncaught.push(err.message));
 
-    await page.goto(`file://${filePath}`);
+    await page.goto(pathToFileURL(filePath).href);
     // Allow requestAnimationFrame, setTimeout, and initial render to run.
     await page.waitForTimeout(2000);
 

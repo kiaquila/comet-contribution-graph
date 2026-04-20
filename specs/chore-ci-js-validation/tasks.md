@@ -15,4 +15,5 @@
 - [x] `pnpm exec playwright test` green on clean HEAD
 - [x] Patch `check:js` scope edge-cases from Codex review (`P1` concise-arrow scope body, `P2` hoisted `var` in nested blocks)
 - [x] Patch `check:js` parameter-binding edge-case from Codex review (`.forEach(paramFn)` with default function expression)
+- [x] Refine arity rule to ignore first-parameter defaults; switch smoke tests to `pathToFileURL(...)` for safe `file://` navigation
 - [ ] `git push` + open PR
