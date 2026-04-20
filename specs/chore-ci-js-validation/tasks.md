@@ -11,6 +11,7 @@
 - [ ] `pnpm exec playwright install --with-deps chromium`
 - [ ] Verify intentional-failure: arity trap
 - [ ] Verify intentional-failure: syntax error
-- [ ] `pnpm run ci` green on clean HEAD
-- [ ] `pnpm exec playwright test` green on clean HEAD
+- [x] `pnpm run ci` green on clean HEAD
+- [x] `pnpm exec playwright test` green on clean HEAD
+- [x] Patch `check:js` scope edge-cases from Codex review (`P1` concise-arrow scope body, `P2` hoisted `var` in nested blocks)
 - [ ] `git push` + open PR

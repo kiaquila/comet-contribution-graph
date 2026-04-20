@@ -48,8 +48,11 @@ Two incidents where inline JS bugs shipped through green CI motivated a dedicate
 
 `scripts/check-prototype-js.mjs` runs on every CI push and PR:
 
-- **Step 1 — Syntax check** (`vm.Script`): compiles each `<script>` block with Node's V8 parser. A `SyntaxError` fails the build immediately with file name and error message. Catches incident class: missing `=>`, unclosed braces, etc.
-- **Step 2 — Arity trap check** (static regex): detects `.forEach(namedFn)` where `namedFn` is defined with ≥2 parameters and at least one has a default value. `forEach` always passes `(element, index, array)` as positional arguments, silently overwriting defaults. Fails with a fix hint: `.forEach((item) => namedFn(item))`.
+- **Step 1 — Syntax check** (`acorn.parse`): parses each inline `<script>` block with mode-aware grammar (`sourceType: "script"` vs `"module"`), so module syntax (`import`/`export`/top-level `await`) is validated correctly. Any parse error fails CI with file + block index.
+- **Step 2 — Arity trap check** (`acorn-walk.ancestor`): finds `.forEach(namedFn)` call-sites, resolves `namedFn` in lexical scope, then inspects function params. If a callback has ≥2 params and at least one default value (`AssignmentPattern`), CI fails with a fix hint: `.forEach((item) => namedFn(item))`.
+- Scope resolver details:
+  - handles concise arrow bodies safely (expression-bodied arrows do not crash scope scanning)
+  - accounts for `var` hoisting from nested blocks within function/global scope so nested `if/for` declarations are still detected
 
 Runs in `baseline-checks` job, after `check:html`, before `build`. Target: ≤5 s.
 

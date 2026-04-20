@@ -97,16 +97,63 @@ function inspectParams(params) {
   return { count, withDefaults };
 }
 
+function isNode(value) {
+  return Boolean(
+    value && typeof value === "object" && typeof value.type === "string",
+  );
+}
+
+function getScopeStatements(scopeNode) {
+  if (!scopeNode?.body) return [];
+  if (Array.isArray(scopeNode.body)) return scopeNode.body;
+  if (
+    scopeNode.body.type === "BlockStatement" &&
+    Array.isArray(scopeNode.body.body)
+  ) {
+    return scopeNode.body.body;
+  }
+  return [];
+}
+
+function addVarBinding(declaration, bindings) {
+  for (const d of declaration.declarations) {
+    if (d.id?.type === "Identifier" && d.init && !bindings.has(d.id.name)) {
+      bindings.set(d.id.name, d);
+    }
+  }
+}
+
+function collectHoistedVarBindings(node, bindings) {
+  if (!isNode(node)) return;
+  if (
+    node.type === "FunctionDeclaration" ||
+    node.type === "FunctionExpression" ||
+    node.type === "ArrowFunctionExpression"
+  ) {
+    return;
+  }
+  if (node.type === "VariableDeclaration" && node.kind === "var") {
+    addVarBinding(node, bindings);
+  }
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (isNode(entry)) {
+          collectHoistedVarBindings(entry, bindings);
+        }
+      }
+    } else if (isNode(value)) {
+      collectHoistedVarBindings(value, bindings);
+    }
+  }
+}
+
 // Walk a scope (Program/Function body, or a BlockStatement) and collect
 // bindings declared directly inside it. Does NOT descend into nested
 // functions/blocks (those introduce their own scopes).
 function collectBindings(scopeNode) {
   const bindings = new Map();
-  const body = scopeNode.body
-    ? Array.isArray(scopeNode.body)
-      ? scopeNode.body
-      : scopeNode.body.body
-    : [];
+  const body = getScopeStatements(scopeNode);
   for (const stmt of body) {
     if (stmt.type === "FunctionDeclaration" && stmt.id) {
       bindings.set(stmt.id.name, stmt);
@@ -129,6 +176,20 @@ function collectBindings(scopeNode) {
       }
     }
   }
+
+  // `var` is function/global scoped, so include declarations nested in
+  // child blocks (`if`, `for`, etc.) while skipping nested function scopes.
+  if (
+    scopeNode.type === "Program" ||
+    scopeNode.type === "FunctionDeclaration" ||
+    scopeNode.type === "FunctionExpression" ||
+    scopeNode.type === "ArrowFunctionExpression"
+  ) {
+    for (const stmt of body) {
+      collectHoistedVarBindings(stmt, bindings);
+    }
+  }
+
   return bindings;
 }
 
