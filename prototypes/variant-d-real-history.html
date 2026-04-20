@@ -88,9 +88,10 @@
       }
 
       .labels-y {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        display: grid;
+        grid-template-rows: repeat(7, 16px);
+        align-items: center;
+        justify-items: end;
         height: 112px;
         font-size: 10px;
         color: #7aacd8;
@@ -3466,7 +3467,7 @@
           const labelsY = document.createElement("div");
           labelsY.className = "labels-y";
           labelsY.innerHTML =
-            "<span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span>";
+            "<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>";
           wrapper.appendChild(labelsY);
 
           const emptySvgContainer = document.createElement("div");
@@ -3492,7 +3493,7 @@
         const labelsY = document.createElement("div");
         labelsY.className = "labels-y";
         labelsY.innerHTML =
-          "<span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span>";
+          "<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>";
         wrapper.appendChild(labelsY);
 
         const svgContainer = document.createElement("div");
@@ -3558,13 +3559,23 @@
         });
 
         // Median threshold
-        const activeCounts = dataPoints
-          .filter((d) => d.count > 0)
+        const activeDays = dataPoints.filter((d) => d.count > 0);
+        const activeCounts = activeDays
           .map((d) => d.count)
           .sort((a, b) => a - b);
-        const median = activeCounts.length
-          ? activeCounts[Math.floor(activeCounts.length / 2)]
-          : 0;
+
+        // True median (even-length aware)
+        let median = 0;
+        if (activeCounts.length > 0) {
+          const mid = Math.floor(activeCounts.length / 2);
+          median =
+            activeCounts.length % 2 === 0
+              ? (activeCounts[mid - 1] + activeCounts[mid]) / 2
+              : activeCounts[mid];
+        }
+
+        const yearTotal = dataPoints.reduce((s, d) => s + d.count, 0);
+        const isSmallAccount = yearTotal < 10;
 
         // Peak selection
         const sorted = [...dataPoints].sort((a, b) => b.count - a.count);
@@ -3574,11 +3585,16 @@
 
         if (activeCount >= 1) {
           hasSufficientPeaks = true;
-          if (activeCount <= 7) {
+          if (isSmallAccount) {
+            // Every active day is a candidate peak — top-K by count, K clamped [1, 7]
+            const sortedActive = [...activeDays].sort(
+              (a, b) => b.count - a.count,
+            );
+            const K = Math.min(7, Math.max(1, sortedActive.length));
+            topDays = sortedActive.slice(0, K).sort((a, b) => a.i - b.i);
+          } else if (activeCount <= 7) {
             // Few active days — every active day becomes a peak
-            topDays = dataPoints
-              .filter((d) => d.count > 0)
-              .sort((a, b) => a.i - b.i);
+            topDays = activeDays.slice().sort((a, b) => a.i - b.i);
           } else {
             // Enough activity to apply threshold
             const threshold = Math.max(5, median * 2);
@@ -3587,6 +3603,10 @@
             topDays = sorted.slice(0, K).sort((a, b) => a.i - b.i);
           }
         }
+
+        const maxCount = topDays.length
+          ? Math.max(...topDays.map((d) => d.count))
+          : 1;
 
         topDays.forEach((td) => {
           dataPoints[td.i].isPeak = true;
@@ -3633,22 +3653,13 @@
           el += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" class="bg-star" fill="${starFill}" style="animation-delay:-${del.toFixed(2)}s" />`;
         }
 
-        // Comet path (only if sufficient peaks)
-        if (hasSufficientPeaks) {
-          let pathD;
-          if (topDays.length === 1) {
-            const single = topDays[0];
-            const phantomStart = {
-              cx: Math.max(padding + 2, single.cx - 60),
-              cy: Math.max(padding + 2, single.cy - 30),
-            };
-            pathD = `M ${phantomStart.cx.toFixed(2)},${phantomStart.cy.toFixed(2)} L ${single.cx.toFixed(2)},${single.cy.toFixed(2)}`;
-          } else {
-            const pathCoords = topDays.map(
-              (d) => `${d.cx.toFixed(2)},${d.cy.toFixed(2)}`,
-            );
-            pathD = `M ${pathCoords.join(" L ")}`;
-          }
+        // Comet path (only if 2+ peaks — single peak gets star only, no comet)
+        const hasCometPath = hasSufficientPeaks && topDays.length >= 2;
+        if (hasCometPath) {
+          const pathCoords = topDays.map(
+            (d) => `${d.cx.toFixed(2)},${d.cy.toFixed(2)}`,
+          );
+          const pathD = `M ${pathCoords.join(" L ")}`;
 
           el += `
             <defs>
@@ -3676,8 +3687,8 @@
             </defs>
             <path d="${pathD}" class="constellation-path" />
             <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
-            <circle id="${headId}" cx="-1000" cy="-1000" r="4" fill="#ffffff" class="comet-head"
-              style="filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9));" />
+            <circle id="${headId}" cx="-10000" cy="-10000" r="4" fill="#ffffff" class="comet-head"
+              style="opacity:0;filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9));" />
           `;
         } else {
           // No comet but still need filter defs if there are peaks to render
@@ -3707,7 +3718,13 @@
 
           if (d.isPeak) {
             const fill = peakFill(d.count);
-            const effectiveCount = Math.min(d.count, 19);
+            let effectiveCount;
+            if (isSmallAccount) {
+              const relRank = d.count / maxCount;
+              effectiveCount = 15 + Math.round(relRank * 4);
+            } else {
+              effectiveCount = Math.min(d.count, 19);
+            }
             const haloR = 3.5 + (effectiveCount - 15) * 0.6;
             const coreR = 0.9 + (effectiveCount - 15) * 0.12;
             const rayLen = 5.0 + (effectiveCount - 15) * 1.0;
@@ -3748,8 +3765,8 @@
         svgEl.insertAdjacentHTML("beforeend", el);
         buildMonthLabelsForYear(monthsId, year, numCols);
 
-        // Animate comet (only if sufficient peaks)
-        if (!hasSufficientPeaks) return;
+        // Animate comet (only if 2+ peaks)
+        if (!hasCometPath) return;
 
         const trailEl = document.getElementById(trailId);
         const headEl = document.getElementById(headId);
@@ -3783,6 +3800,7 @@
         }
 
         function loop() {
+          headEl.style.opacity = "1";
           const start = performance.now();
           function frame(now) {
             const elapsed = now - start;
@@ -3790,7 +3808,9 @@
               tick(elapsed);
               requestAnimationFrame(frame);
             } else {
-              headEl.setAttribute("cx", -100);
+              headEl.setAttribute("cx", -10000);
+              headEl.setAttribute("cy", -10000);
+              headEl.style.opacity = "0";
               trailEl.style.strokeDasharray = "none";
               setTimeout(loop, HOLD);
             }

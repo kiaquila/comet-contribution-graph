@@ -88,9 +88,11 @@
       }
 
       .labels-y {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        display: grid;
+        grid-template-rows: repeat(7, 16px);
+        align-content: start;
+        justify-items: end;
+        align-items: center;
         height: 112px;
         font-size: 10px;
         color: #7aacd8;
@@ -205,8 +207,8 @@
       <div class="graph-wrapper">
         <div class="labels-x" id="months-a"></div>
         <div class="labels-y">
-          <span>Mon</span><span></span><span>Wed</span><span></span
-          ><span>Fri</span><span></span><span></span>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="svg-container">
           <svg id="sky-a" role="img" aria-labelledby="title-a desc-a">
@@ -234,8 +236,8 @@
       <div class="graph-wrapper">
         <div class="labels-x" id="months-b"></div>
         <div class="labels-y">
-          <span>Mon</span><span></span><span>Wed</span><span></span
-          ><span>Fri</span><span></span><span></span>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="svg-container">
           <svg id="sky-b" role="img" aria-labelledby="title-b desc-b">
@@ -257,8 +259,8 @@
       <div class="graph-wrapper">
         <div class="labels-x" id="months-c"></div>
         <div class="labels-y">
-          <span>Mon</span><span></span><span>Wed</span><span></span
-          ><span>Fri</span><span></span><span></span>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="svg-container">
           <svg id="sky-c" role="img" aria-labelledby="title-c desc-c">
@@ -280,8 +282,8 @@
       <div class="graph-wrapper">
         <div class="labels-x" id="months-d"></div>
         <div class="labels-y">
-          <span>Mon</span><span></span><span>Wed</span><span></span
-          ><span>Fri</span><span></span><span></span>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="svg-container">
           <svg id="sky-d" role="img" aria-labelledby="title-d desc-d">
@@ -302,8 +304,8 @@
       <div class="graph-wrapper">
         <div class="labels-x" id="months-e"></div>
         <div class="labels-y">
-          <span>Mon</span><span></span><span>Wed</span><span></span
-          ><span>Fri</span><span></span><span></span>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span
+          ><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
         <div class="svg-container">
           <svg id="sky-e" role="img" aria-labelledby="title-e desc-e">
@@ -469,9 +471,14 @@
           .filter((d) => d.count > 0)
           .map((d) => d.count)
           .sort((a, b) => a - b);
-        const median = activeCounts.length
-          ? activeCounts[Math.floor(activeCounts.length / 2)]
-          : 0;
+        let median = 0;
+        if (activeCounts.length > 0) {
+          const mid = Math.floor(activeCounts.length / 2);
+          median =
+            activeCounts.length % 2 === 0
+              ? (activeCounts[mid - 1] + activeCounts[mid]) / 2
+              : activeCounts[mid];
+        }
 
         // 3. Identify top-K peaks (clamped [2, 7])
         const sorted = [...data].sort((a, b) => b.count - a.count);
@@ -513,7 +520,8 @@
 
         // Background noise stars (separate deterministic stream per variant)
         const noiseSeed = makePRNG(initSeed ^ 0xdeadbeef);
-        for (let i = 0; i < 80; i++) {
+        const bgCount = config.bgStarCount ?? (activityProb === 0 ? 0 : 80);
+        for (let i = 0; i < bgCount; i++) {
           const cx = noiseSeed() * 848 + padding;
           const cy = noiseSeed() * 112 + padding;
           const r = noiseSeed() * 1.5;
@@ -555,13 +563,13 @@
             <filter id="organic-sphere-${variantLetter}" x="-80%" y="-80%" width="260%" height="260%">
               <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" />
               <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-              <feGaussianBlur in="displaced" stdDeviation="2.0" />
+              <feGaussianBlur in="displaced" stdDeviation="1.4" />
             </filter>
           </defs>
           <path d="${pathD}" class="constellation-path" />
           <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
-          <circle id="${headId}" cx="-1000" cy="-1000" r="4" fill="#ffffff" class="comet-head"
-            style="filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9));" />
+          <circle id="${headId}" cx="-10000" cy="-10000" r="4" fill="#ffffff" class="comet-head"
+            style="filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9)); opacity: 0;" />
         `;
 
         // Data stars
@@ -576,14 +584,14 @@
             const rayLen = 5.0 + (effectiveCount - 15) * 1.0;
             const diagLen = rayLen * 0.45;
             const diagOff = diagLen * 0.707;
-            const sphereR = haloR * 1.2;
+            const sphereR = haloR * 0.75;
             const haloFilter = peakHaloFilter(effectiveCount, variantLetter);
 
             el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
             // 1. Halo
             el += `<circle class="peak-halo" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${haloR.toFixed(2)}" fill="hsla(48,100%,74%,0.35)" filter="${haloFilter}" />`;
             // 2. Organic sphere overlay (NEW v5)
-            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,100%,98%,0.32)" filter="url(#organic-sphere-${variantLetter})" />`;
+            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,100%,99%,0.55)" filter="url(#organic-sphere-${variantLetter})" />`;
             // 3. Diagonal rays
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
@@ -651,6 +659,7 @@
         }
 
         function loop() {
+          headEl.style.opacity = "1";
           const start = performance.now();
           function frame(now) {
             const elapsed = now - start;
@@ -658,7 +667,9 @@
               tick(elapsed);
               requestAnimationFrame(frame);
             } else {
-              headEl.setAttribute("cx", -100);
+              headEl.setAttribute("cx", -10000);
+              headEl.setAttribute("cy", -10000);
+              headEl.style.opacity = "0";
               trailEl.style.strokeDasharray = "none";
               setTimeout(loop, HOLD);
             }
