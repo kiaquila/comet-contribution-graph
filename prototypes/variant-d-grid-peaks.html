@@ -10,12 +10,12 @@
     <style>
       /* §1 — tunables */
       :root {
-        --comet-duration: 0.48s; /* traversal */
-        --comet-hold: 1.35s;
+        --comet-duration: 3.36s; /* traversal */
+        --comet-hold: 1.5s;
         --comet-head-r: 4px;
         --comet-head-color: #ffffff;
         --comet-trail-width: 2px;
-        --comet-tail-len: 100;
+        --comet-tail-len: 70;
         --jitter-amp: 0.32;
         --star-r-min: 0.8;
         --star-r-max: 3;
@@ -329,9 +329,9 @@
       }
 
       // ── Animation constants ───────────────────────────────────────────────
-      const DURATION = 480; // ms
-      const HOLD = 1350; // ms
-      const TAIL_LEN = 100; // px
+      const DURATION = 3360; // ms
+      const HOLD = 1500; // ms
+      const TAIL_LEN = 70; // px
 
       // ── Grid geometry ─────────────────────────────────────────────────────
       const cellSize = 16;
@@ -368,9 +368,9 @@
         return `url(#halo-lg-${v})`;
       }
 
-      // ── easing ────────────────────────────────────────────────────────────
+      // ── easing — cubic-bezier(0.4, 0, 0.6, 1) symmetric S-curve ─────────
       function ease(t) {
-        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        return t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
       }
 
       // ── Month labels ──────────────────────────────────────────────────────
@@ -552,6 +552,11 @@
             <filter id="halo-lg-${variantLetter}" x="-200%" y="-200%" width="500%" height="500%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="5.0" />
             </filter>
+            <filter id="organic-sphere-${variantLetter}" x="-80%" y="-80%" width="260%" height="260%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+              <feGaussianBlur in="displaced" stdDeviation="2.0" />
+            </filter>
           </defs>
           <path d="${pathD}" class="constellation-path" />
           <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
@@ -565,23 +570,27 @@
 
           if (d.isPeak) {
             const fill = peakFill(d.count);
-            const haloR = 3.5 + (d.count - 15) * 0.6;
-            const coreR = 0.9 + (d.count - 15) * 0.12;
-            const rayLen = 5.0 + (d.count - 15) * 1.0;
+            const effectiveCount = Math.min(d.count, 19);
+            const haloR = 3.5 + (effectiveCount - 15) * 0.6;
+            const coreR = 0.9 + (effectiveCount - 15) * 0.12;
+            const rayLen = 5.0 + (effectiveCount - 15) * 1.0;
             const diagLen = rayLen * 0.45;
             const diagOff = diagLen * 0.707;
-            const haloFilter = peakHaloFilter(d.count, variantLetter);
+            const sphereR = haloR * 1.5;
+            const haloFilter = peakHaloFilter(effectiveCount, variantLetter);
 
             el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
             // 1. Halo
             el += `<circle class="peak-halo" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${haloR.toFixed(2)}" fill="hsla(48,100%,74%,0.35)" filter="${haloFilter}" />`;
-            // 2. Diagonal rays
+            // 2. Organic sphere overlay (NEW v5)
+            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,80%,96%,0.20)" filter="url(#organic-sphere-${variantLetter})" />`;
+            // 3. Diagonal rays
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
-            // 3. Primary H + V rays
+            // 4. Primary H + V rays
             el += `<line x1="${(d.cx - rayLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + rayLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="0.5" stroke-linecap="round" />`;
             el += `<line x1="${d.cx.toFixed(2)}" y1="${(d.cy - rayLen).toFixed(2)}" x2="${d.cx.toFixed(2)}" y2="${(d.cy + rayLen).toFixed(2)}" stroke="${fill}" stroke-width="0.5" stroke-linecap="round" />`;
-            // 4. Core
+            // 5. Core
             el += `<circle class="peak-core" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${coreR.toFixed(2)}" fill="${fill}" />`;
             el += `</g>`;
           } else {
