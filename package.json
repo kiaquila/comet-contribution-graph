@@ -9,7 +9,7 @@
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
     "check:html": "html-validate prototypes/variant-d-grid-peaks.html",
-    "check:js": "node --experimental-vm-modules --no-warnings scripts/check-prototype-js.mjs",
+    "check:js": "node scripts/check-prototype-js.mjs",
     "check:js:smoke": "playwright test",
     "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\" \"playwright.config.mjs\"",
     "test": "node --test \"tests/**/*.test.mjs\"",
@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "acorn": "^8.14.0",
+    "acorn-walk": "^8.3.4",
     "html-validate": "^10.11.3",
     "prettier": "^3.8.1"
   },

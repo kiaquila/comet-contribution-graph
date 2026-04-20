@@ -2,7 +2,8 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import vm from "node:vm";
+import { parse } from "acorn";
+import { ancestor } from "acorn-walk";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
@@ -48,187 +49,163 @@ function rel(file) {
   return relative(repoRoot, file);
 }
 
-// Escape a JS identifier for safe interpolation into a RegExp source.
-// Identifiers may contain `$`, which is a regex end-anchor metacharacter.
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function parseScript({ code, mode }) {
+  return parse(code, {
+    ecmaVersion: "latest",
+    sourceType: mode === "module" ? "module" : "script",
+    allowAwaitOutsideFunction: mode === "module",
+    allowReturnOutsideFunction: false,
+    locations: true,
+  });
 }
 
-// Split a parameter list string on top-level commas only, ignoring commas
-// inside brackets/braces/parens or string/template literals.
-function splitParams(paramStr) {
-  const parts = [];
-  let depth = 0;
-  let inString = "";
-  let escaped = false;
-  let current = "";
-  for (const ch of paramStr) {
-    if (escaped) {
-      escaped = false;
-      current += ch;
-      continue;
-    }
-    if (ch === "\\") {
-      escaped = true;
-      current += ch;
-      continue;
-    }
-    if (inString) {
-      if (ch === inString) inString = "";
-      current += ch;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === "`") {
-      inString = ch;
-      current += ch;
-      continue;
-    }
-    if ("{([".includes(ch)) depth++;
-    else if ("})]".includes(ch)) depth--;
-    else if (ch === "," && depth === 0) {
-      parts.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += ch;
-  }
-  if (current.trim()) parts.push(current.trim());
-  return parts.filter(Boolean);
-}
-
-// Strip // and /* */ comments from JS source, skipping string/template literals
-// so comment-like text inside strings is preserved.
-function stripComments(code) {
-  let result = "";
-  let i = 0;
-  let inString = "";
-  let escaped = false;
-  while (i < code.length) {
-    const ch = code[i];
-    if (escaped) {
-      escaped = false;
-      result += ch;
-      i++;
-      continue;
-    }
-    if (ch === "\\" && inString) {
-      escaped = true;
-      result += ch;
-      i++;
-      continue;
-    }
-    if (inString) {
-      if (ch === inString) inString = "";
-      result += ch;
-      i++;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === "`") {
-      inString = ch;
-      result += ch;
-      i++;
-      continue;
-    }
-    if (ch === "/" && code[i + 1] === "/") {
-      while (i < code.length && code[i] !== "\n") i++;
-      continue;
-    }
-    if (ch === "/" && code[i + 1] === "*") {
-      i += 2;
-      while (i < code.length && !(code[i] === "*" && code[i + 1] === "/")) i++;
-      i += 2;
-      continue;
-    }
-    result += ch;
-    i++;
-  }
-  return result;
-}
-
-// Step 1: syntax check.
-// - Classic scripts: vm.Script (catches missing arrows, unclosed braces, etc.)
-// - Module scripts: vm.SourceTextModule (module grammar: import/export/top-level await)
-async function syntaxCheck(htmlFiles) {
+// Parse each inline script. Syntax errors surface here; acorn uses the correct
+// grammar for the script's mode (module vs classic).
+function syntaxCheck(htmlFiles) {
   let failed = false;
-  const hasSourceTextModule = typeof vm.SourceTextModule === "function";
+  const parsed = [];
   for (const file of htmlFiles) {
     const html = readFileSync(file, "utf8");
     const scripts = extractInlineScripts(html);
     for (let i = 0; i < scripts.length; i++) {
-      const { code, mode } = scripts[i];
+      const s = scripts[i];
       try {
-        if (mode === "module") {
-          if (hasSourceTextModule) {
-            new vm.SourceTextModule(code);
-          } else {
-            console.error(`\n⚠ SKIP   ${rel(file)}  (block ${i + 1}, module)`);
-            console.error(
-              `  vm.SourceTextModule unavailable — re-run with --experimental-vm-modules`,
-            );
-          }
-        } else {
-          new vm.Script(code);
-        }
+        const ast = parseScript(s);
+        parsed.push({ file, blockIndex: i, ast, mode: s.mode });
       } catch (e) {
         if (e instanceof SyntaxError) {
-          console.error(`\n✗ SYNTAX  ${rel(file)}  (block ${i + 1}, ${mode})`);
-          console.error(`  ${e.message.split("\n")[0]}`);
+          console.error(
+            `\n✗ SYNTAX  ${rel(file)}  (block ${i + 1}, ${s.mode})`,
+          );
+          console.error(`  ${e.message}`);
           failed = true;
+        } else {
+          throw e;
         }
       }
     }
   }
-  return failed;
+  return { failed, parsed };
 }
 
-// Step 2: arity trap — .forEach(namedFn) where namedFn has ≥2 params with defaults.
-// forEach passes (element, index, array), silently overwriting default values.
-function arityCheck(htmlFiles) {
-  let failed = false;
-  for (const file of htmlFiles) {
-    const html = readFileSync(file, "utf8");
-    const scripts = extractInlineScripts(html);
-    for (let i = 0; i < scripts.length; i++) {
-      const { code } = scripts[i];
-      // Strip comments so `// arr.forEach(fn)` doesn't trigger a false positive.
-      const stripped = stripComments(code);
-      const callRe = /\.forEach\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\)/g;
-      let callMatch;
-      while ((callMatch = callRe.exec(stripped)) !== null) {
-        const fn = callMatch[1];
-        const fnEsc = escapeRegex(fn);
-        // Use first definition only — first match is the outermost (canonical) scope.
-        // Checking all matches risks false-positives from inner shadowing functions.
-        const defPatterns = [
-          new RegExp(`function\\s+${fnEsc}\\s*\\(([^)]*?)\\)`),
-          new RegExp(
-            `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?\\(([^)]*?)\\)\\s*=>`,
-          ),
-          new RegExp(
-            `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?function\\s*\\(([^)]*?)\\)`,
-          ),
-        ];
-        for (const defRe of defPatterns) {
-          const defMatch = defRe.exec(stripped);
-          if (defMatch) {
-            const params = splitParams(defMatch[1] ?? "");
-            const withDefaults = params.filter((p) => /=/.test(p));
-            if (params.length >= 2 && withDefaults.length > 0) {
-              console.error(`\n✗ ARITY TRAP  ${rel(file)}  (block ${i + 1})`);
-              console.error(
-                `  .forEach(${fn}) — '${fn}' has ${params.length} params, ${withDefaults.length} with defaults`,
-              );
-              console.error(
-                `  forEach passes (element, index, array) — defaults get overwritten`,
-              );
-              console.error(`  Fix: .forEach((item) => ${fn}(item))`);
-              failed = true;
-            }
-            break;
+// Given a Function node's params array, return { count, withDefaults }.
+function inspectParams(params) {
+  const count = params.length;
+  const withDefaults = params.filter(
+    (p) => p.type === "AssignmentPattern",
+  ).length;
+  return { count, withDefaults };
+}
+
+// Walk a scope (Program/Function body, or a BlockStatement) and collect
+// bindings declared directly inside it. Does NOT descend into nested
+// functions/blocks (those introduce their own scopes).
+function collectBindings(scopeNode) {
+  const bindings = new Map();
+  const body = scopeNode.body
+    ? Array.isArray(scopeNode.body)
+      ? scopeNode.body
+      : scopeNode.body.body
+    : [];
+  for (const stmt of body) {
+    if (stmt.type === "FunctionDeclaration" && stmt.id) {
+      bindings.set(stmt.id.name, stmt);
+    } else if (stmt.type === "VariableDeclaration") {
+      for (const d of stmt.declarations) {
+        if (d.id?.type === "Identifier" && d.init) {
+          bindings.set(d.id.name, d);
+        }
+      }
+    } else if (stmt.type === "ExportNamedDeclaration" && stmt.declaration) {
+      const decl = stmt.declaration;
+      if (decl.type === "FunctionDeclaration" && decl.id) {
+        bindings.set(decl.id.name, decl);
+      } else if (decl.type === "VariableDeclaration") {
+        for (const d of decl.declarations) {
+          if (d.id?.type === "Identifier" && d.init) {
+            bindings.set(d.id.name, d);
           }
         }
       }
     }
+  }
+  return bindings;
+}
+
+// Resolve `name` to its defining node by walking ancestors from innermost
+// outward; first matching scope wins (lexical scope semantics). Returns
+// the Function-like node whose params we should inspect, or null.
+function resolveBinding(ancestors, name) {
+  for (let i = ancestors.length - 1; i >= 0; i--) {
+    const node = ancestors[i];
+    const isScope =
+      node.type === "Program" ||
+      node.type === "BlockStatement" ||
+      node.type === "FunctionDeclaration" ||
+      node.type === "FunctionExpression" ||
+      node.type === "ArrowFunctionExpression";
+    if (!isScope) continue;
+    const bindings = collectBindings(node);
+    const hit = bindings.get(name);
+    if (!hit) continue;
+    if (hit.type === "FunctionDeclaration") return hit;
+    if (hit.type === "VariableDeclarator") {
+      const init = hit.init;
+      if (
+        init &&
+        (init.type === "FunctionExpression" ||
+          init.type === "ArrowFunctionExpression")
+      ) {
+        return init;
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
+// Step 2: arity trap detection via AST walk.
+// Finds `.forEach(identifier)` calls and checks the bound function's params.
+function arityCheck(parsed) {
+  let failed = false;
+  for (const { file, blockIndex, ast } of parsed) {
+    ancestor(ast, {
+      CallExpression(node, _state, ancestors) {
+        const callee = node.callee;
+        if (
+          callee.type !== "MemberExpression" ||
+          callee.computed ||
+          callee.property.type !== "Identifier" ||
+          callee.property.name !== "forEach"
+        ) {
+          return;
+        }
+        if (
+          node.arguments.length !== 1 ||
+          node.arguments[0].type !== "Identifier"
+        ) {
+          return;
+        }
+        const name = node.arguments[0].name;
+        // ancestors[] includes `node` itself at the end; exclude it.
+        const fnNode = resolveBinding(ancestors.slice(0, -1), name);
+        if (!fnNode) return;
+        const { count, withDefaults } = inspectParams(fnNode.params);
+        if (count >= 2 && withDefaults > 0) {
+          console.error(
+            `\n✗ ARITY TRAP  ${rel(file)}  (block ${blockIndex + 1})`,
+          );
+          console.error(
+            `  .forEach(${name}) — '${name}' has ${count} params, ${withDefaults} with defaults`,
+          );
+          console.error(
+            `  forEach passes (element, index, array) — defaults get overwritten`,
+          );
+          console.error(`  Fix: .forEach((item) => ${name}(item))`);
+          failed = true;
+        }
+      },
+    });
   }
   return failed;
 }
@@ -243,8 +220,8 @@ if (htmlFiles.length === 0) {
 
 console.log(`check:js — scanning ${htmlFiles.length} prototype(s)...`);
 
-const syntaxFailed = await syntaxCheck(htmlFiles);
-const arityFailed = arityCheck(htmlFiles);
+const { failed: syntaxFailed, parsed } = syntaxCheck(htmlFiles);
+const arityFailed = arityCheck(parsed);
 
 if (syntaxFailed || arityFailed) {
   console.error("\ncheck:js FAILED");

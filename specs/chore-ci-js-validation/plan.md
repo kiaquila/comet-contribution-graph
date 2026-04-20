@@ -5,12 +5,21 @@
 ### 1 — Write `scripts/check-prototype-js.mjs`
 
 - Glob `prototypes/**/*.html`
-- Extract all `<script>` blocks (skip non-JS types)
-- **Step 1 (syntax):** `new vm.Script(code)` — SyntaxError → `exit(1)` with
-  file + block number + first line of error message
-- **Step 2 (arity):** regex scan for `.forEach(identifier)` patterns; look up
-  the function definition of `identifier`; if it has ≥2 params and at least one
-  default (`=`) → `exit(1)` with explanation and fix hint
+- Extract all `<script>` blocks (skip non-JS types; classify classic vs `module`)
+- Parse each block via `acorn.parse()` with the correct `sourceType` — this
+  gives syntax checking for free and supports module syntax (`import`, `export`,
+  top-level `await`) without false failures. SyntaxError → `exit(1)` with
+  file + block index + mode + first line of error.
+- **Arity trap detection via AST (`acorn-walk.ancestor`):** find each
+  `CallExpression` of shape `<anything>.forEach(<Identifier>)`, resolve the
+  identifier in lexical scope by walking the ancestor chain (innermost scope
+  first), inspect the bound Function-like node's `params`: if `params.length >= 2`
+  and any is `AssignmentPattern` (default value) → `exit(1)` with explanation
+  and fix hint.
+
+AST-based analysis avoids the regex pitfalls (nested commas in defaults,
+comment/string false positives, scope shadowing, unquoted `type=module`
+attributes, regex-metacharacter identifiers).
 
 Verify condition: `node scripts/check-prototype-js.mjs` exits 0 on clean HEAD
 
@@ -28,7 +37,7 @@ Verify condition: `pnpm exec playwright test` exits 0 on clean HEAD
 - Add `"check:js:smoke": "playwright test"`
 - Update `"ci"` to: `check:repo && check:html && check:js && build && format:check && test`
 - Add `"playwright.config.mjs"` to `format:check` glob
-- Add `@playwright/test ^1.49.0` to devDependencies
+- Add `@playwright/test ^1.49.0`, `acorn ^8.14.0`, `acorn-walk ^8.3.4` to devDependencies
 
 Verify condition: `pnpm run ci` exits 0
 
