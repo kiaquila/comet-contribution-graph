@@ -9,15 +9,20 @@
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
     "check:html": "html-validate prototypes/variant-d-grid-peaks.html",
+    "check:js": "eslint \"prototypes/**/*.html\"",
     "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\"",
     "test": "node --test \"tests/**/*.test.mjs\"",
-    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run build && pnpm run format:check && pnpm run test",
+    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run build && pnpm run format:check && pnpm run test",
     "pr:publish": "node scripts/publish-branch.mjs",
     "review:switch": "node scripts/switch-review-agent.mjs",
     "worker:start": "node scripts/start-implementation-worker.mjs",
     "worktree:new": "node scripts/new-worktree.mjs"
   },
   "devDependencies": {
+    "eslint": "^9",
+    "eslint-plugin-html": "^8",
+    "eslint-plugin-unicorn": "^57",
+    "globals": "^16",
     "html-validate": "^10.11.3",
     "prettier": "^3.8.1"
   },
