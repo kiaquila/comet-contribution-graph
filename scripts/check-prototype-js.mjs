@@ -52,6 +52,26 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Split a parameter list string on top-level commas only, ignoring commas
+// inside brackets/braces/parens (e.g. default values like `{x: 1, y: 2}`).
+function splitParams(paramStr) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of paramStr) {
+    if ("{([".includes(ch)) depth++;
+    else if ("})]".includes(ch)) depth--;
+    else if (ch === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts.filter(Boolean);
+}
+
 // Step 1: syntax check.
 // - Classic scripts: vm.Script (catches missing arrows, unclosed braces, etc.)
 // - Module scripts: vm.SourceTextModule (module grammar: import/export/top-level await)
@@ -116,10 +136,7 @@ function arityCheck(htmlFiles) {
         for (const defRe of defPatterns) {
           let defMatch;
           while ((defMatch = defRe.exec(code)) !== null) {
-            const params = (defMatch[1] ?? "")
-              .split(",")
-              .map((p) => p.trim())
-              .filter(Boolean);
+            const params = splitParams(defMatch[1] ?? "");
             const withDefaults = params.filter((p) => /=/.test(p));
             if (params.length >= 2 && withDefaults.length > 0) {
               console.error(`\n✗ ARITY TRAP  ${rel(file)}  (block ${i + 1})`);
