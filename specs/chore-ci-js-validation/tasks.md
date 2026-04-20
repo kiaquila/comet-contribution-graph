@@ -14,4 +14,5 @@
 - [x] `pnpm run ci` green on clean HEAD
 - [x] `pnpm exec playwright test` green on clean HEAD
 - [x] Patch `check:js` scope edge-cases from Codex review (`P1` concise-arrow scope body, `P2` hoisted `var` in nested blocks)
+- [x] Patch `check:js` parameter-binding edge-case from Codex review (`.forEach(paramFn)` with default function expression)
 - [ ] `git push` + open PR

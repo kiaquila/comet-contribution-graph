@@ -154,6 +154,29 @@ function collectHoistedVarBindings(node, bindings) {
 function collectBindings(scopeNode) {
   const bindings = new Map();
   const body = getScopeStatements(scopeNode);
+
+  if (
+    scopeNode.type === "FunctionDeclaration" ||
+    scopeNode.type === "FunctionExpression" ||
+    scopeNode.type === "ArrowFunctionExpression"
+  ) {
+    for (const param of scopeNode.params ?? []) {
+      if (param.type === "Identifier") {
+        bindings.set(param.name, param);
+      } else if (
+        param.type === "AssignmentPattern" &&
+        param.left.type === "Identifier"
+      ) {
+        bindings.set(param.left.name, param);
+      } else if (
+        param.type === "RestElement" &&
+        param.argument.type === "Identifier"
+      ) {
+        bindings.set(param.argument.name, param);
+      }
+    }
+  }
+
   for (const stmt of body) {
     if (stmt.type === "FunctionDeclaration" && stmt.id) {
       bindings.set(stmt.id.name, stmt);
@@ -218,6 +241,17 @@ function resolveBinding(ancestors, name) {
           init.type === "ArrowFunctionExpression")
       ) {
         return init;
+      }
+      return null;
+    }
+    if (hit.type === "AssignmentPattern") {
+      const right = hit.right;
+      if (
+        right &&
+        (right.type === "FunctionExpression" ||
+          right.type === "ArrowFunctionExpression")
+      ) {
+        return right;
       }
       return null;
     }

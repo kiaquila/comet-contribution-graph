@@ -53,6 +53,7 @@ Two incidents where inline JS bugs shipped through green CI motivated a dedicate
 - Scope resolver details:
   - handles concise arrow bodies safely (expression-bodied arrows do not crash scope scanning)
   - accounts for `var` hoisting from nested blocks within function/global scope so nested `if/for` declarations are still detected
+  - tracks function parameter bindings (including default function expressions) so `.forEach(paramFn)` is validated too
 
 Runs in `baseline-checks` job, after `check:html`, before `build`. Target: ≤5 s.
 
