@@ -39,3 +39,34 @@ This layering ensures the core rendering path is Action-compatible from the star
 - Comet animation region should be wrapped in `aria-hidden="true"` when purely decorative
 - Respect `prefers-reduced-motion` via both CSS `@media` query and a JS guard for dynamically started animations
 - Do not restrict viewport zoom (`user-scalable=no` must not be set)
+
+## CI Validation
+
+Two incidents where inline JS bugs shipped through green CI motivated a dedicated validation layer.
+
+### `check:js` (part of `pnpm run ci`)
+
+`scripts/check-prototype-js.mjs` runs on every CI push and PR:
+
+- **Step 1 — Syntax check** (`vm.Script`): compiles each `<script>` block with Node's V8 parser. A `SyntaxError` fails the build immediately with file name and error message. Catches incident class: missing `=>`, unclosed braces, etc.
+- **Step 2 — Arity trap check** (static regex): detects `.forEach(namedFn)` where `namedFn` is defined with ≥2 parameters and at least one has a default value. `forEach` always passes `(element, index, array)` as positional arguments, silently overwriting defaults. Fails with a fix hint: `.forEach((item) => namedFn(item))`.
+
+Runs in `baseline-checks` job, after `check:html`, before `build`. Target: ≤5 s.
+
+### `check:js:smoke` (`js-smoke` CI job)
+
+`tests/prototype-smoke.spec.mjs` runs Playwright (Chromium) in a separate CI job that depends on `baseline-checks`:
+
+- Opens each `prototypes/**/*.html` file via `file://` URL
+- Waits 2 s for `requestAnimationFrame` and `setTimeout` callbacks to fire
+- Asserts zero `pageerror` events (uncaught JS exceptions)
+
+Playwright browser binary is cached in CI keyed on OS + Playwright version. The job uses `needs: baseline-checks` so it only runs after static checks pass.
+
+### Intentional-failure verification
+
+To verify the checks catch real bugs:
+
+1. **Arity trap:** add `function testFn(v, x = 0) {}` and `[].forEach(testFn)` inside any prototype `<script>` → `pnpm run check:js` must exit 1
+2. **Syntax error:** add `const x = 1 +` (incomplete expression) inside any prototype `<script>` → `pnpm run check:js` must exit 1
+3. Revert both → `pnpm run ci` must exit 0
