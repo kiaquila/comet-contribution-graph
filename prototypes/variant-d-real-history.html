@@ -61,6 +61,30 @@
         line-height: 1.5;
       }
 
+      .user-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        width: 100%;
+      }
+      .user-header {
+        text-align: center;
+      }
+      .user-header h2 {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        letter-spacing: 0.05em;
+      }
+      .user-header p {
+        color: #7aacd8;
+        font-size: 12px;
+        margin: 0;
+        opacity: 0.7;
+      }
+
       .year-section {
         display: flex;
         flex-direction: column;
@@ -88,10 +112,9 @@
       }
 
       .labels-y {
-        display: grid;
-        grid-template-rows: repeat(7, 16px);
-        align-items: center;
-        justify-items: end;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         height: 112px;
         font-size: 10px;
         color: #7aacd8;
@@ -205,7 +228,21 @@
       </p>
     </div>
 
-    <div id="year-sections"></div>
+    <div class="user-section">
+      <div class="user-header">
+        <h2>@kiaquila</h2>
+        <p>2018–2026 · 9 years</p>
+      </div>
+      <div id="year-sections"></div>
+    </div>
+
+    <div class="user-section">
+      <div class="user-header">
+        <h2>@Staks-sor</h2>
+        <p>2022–2026 · 5 years</p>
+      </div>
+      <div id="year-sections-staks"></div>
+    </div>
 
     <script>
       // ── Real contribution history (GitHub GraphQL, 2018–2026) ─────────────
@@ -3299,6 +3336,334 @@
         },
       ];
 
+      // ── Expand sparse contribution data to full year arrays ───────────────
+      function expandSparse(year, sparse, partialEnd) {
+        const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+        const fullDays = isLeap ? 366 : 365;
+        const map = Object.fromEntries(sparse.map(([d, c]) => [d, c]));
+        const days = [];
+        const start = new Date(year, 0, 1);
+        for (let i = 0; i < fullDays; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          if (partialEnd && key > partialEnd) break;
+          days.push([key, map[key] || 0]);
+        }
+        return days;
+      }
+
+      // ── Staks-sor contribution history (2022–2026) ────────────────────────
+      const STAKS_SOR_SPARSE = {
+        2022: {
+          total: 304,
+          sparse: [
+            ["2022-01-04", 4],
+            ["2022-01-13", 3],
+            ["2022-01-15", 1],
+            ["2022-01-16", 9],
+            ["2022-01-17", 1],
+            ["2022-01-30", 9],
+            ["2022-02-03", 3],
+            ["2022-02-04", 1],
+            ["2022-02-06", 7],
+            ["2022-02-07", 3],
+            ["2022-02-09", 1],
+            ["2022-02-12", 4],
+            ["2022-02-15", 4],
+            ["2022-03-30", 6],
+            ["2022-04-04", 4],
+            ["2022-04-05", 4],
+            ["2022-04-06", 2],
+            ["2022-04-07", 3],
+            ["2022-04-08", 4],
+            ["2022-04-12", 12],
+            ["2022-04-14", 1],
+            ["2022-04-16", 6],
+            ["2022-04-20", 1],
+            ["2022-04-23", 3],
+            ["2022-04-24", 1],
+            ["2022-04-28", 1],
+            ["2022-05-16", 4],
+            ["2022-05-20", 4],
+            ["2022-05-25", 5],
+            ["2022-05-29", 3],
+            ["2022-05-30", 1],
+            ["2022-05-31", 3],
+            ["2022-06-01", 3],
+            ["2022-06-03", 4],
+            ["2022-06-04", 16],
+            ["2022-06-07", 4],
+            ["2022-06-08", 5],
+            ["2022-06-09", 8],
+            ["2022-06-10", 2],
+            ["2022-06-11", 2],
+            ["2022-06-16", 1],
+            ["2022-06-22", 5],
+            ["2022-06-24", 7],
+            ["2022-06-27", 1],
+            ["2022-06-30", 6],
+            ["2022-07-01", 5],
+            ["2022-07-02", 8],
+            ["2022-07-03", 2],
+            ["2022-07-04", 1],
+            ["2022-07-05", 6],
+            ["2022-07-06", 8],
+            ["2022-07-07", 2],
+            ["2022-07-08", 2],
+            ["2022-07-09", 1],
+            ["2022-07-11", 5],
+            ["2022-07-12", 9],
+            ["2022-07-13", 3],
+            ["2022-07-14", 2],
+            ["2022-07-18", 1],
+            ["2022-07-20", 4],
+            ["2022-07-21", 2],
+            ["2022-07-22", 2],
+            ["2022-07-27", 4],
+            ["2022-07-28", 5],
+            ["2022-07-29", 8],
+            ["2022-08-01", 2],
+            ["2022-08-02", 4],
+            ["2022-08-03", 1],
+            ["2022-08-04", 2],
+            ["2022-08-05", 2],
+            ["2022-08-08", 1],
+            ["2022-08-09", 2],
+            ["2022-08-11", 2],
+            ["2022-08-22", 1],
+            ["2022-08-23", 3],
+            ["2022-08-24", 1],
+            ["2022-08-25", 4],
+            ["2022-08-26", 1],
+            ["2022-08-29", 1],
+            ["2022-09-19", 6],
+            ["2022-09-20", 5],
+            ["2022-10-26", 4],
+          ],
+        },
+        2023: {
+          total: 218,
+          sparse: [
+            ["2023-05-03", 2],
+            ["2023-05-04", 1],
+            ["2023-05-05", 1],
+            ["2023-06-02", 2],
+            ["2023-06-05", 1],
+            ["2023-07-17", 5],
+            ["2023-07-18", 10],
+            ["2023-07-19", 4],
+            ["2023-07-20", 20],
+            ["2023-07-21", 10],
+            ["2023-07-22", 3],
+            ["2023-07-23", 4],
+            ["2023-07-24", 13],
+            ["2023-07-25", 17],
+            ["2023-07-26", 16],
+            ["2023-07-27", 7],
+            ["2023-07-28", 6],
+            ["2023-07-31", 6],
+            ["2023-08-01", 3],
+            ["2023-08-02", 5],
+            ["2023-08-03", 2],
+            ["2023-08-04", 6],
+            ["2023-08-07", 2],
+            ["2023-08-08", 9],
+            ["2023-08-09", 13],
+            ["2023-08-10", 8],
+            ["2023-08-11", 5],
+            ["2023-08-14", 4],
+            ["2023-08-15", 4],
+            ["2023-08-16", 4],
+            ["2023-08-17", 6],
+            ["2023-08-18", 3],
+            ["2023-08-22", 1],
+            ["2023-09-17", 1],
+            ["2023-09-18", 1],
+            ["2023-09-19", 6],
+            ["2023-09-21", 1],
+            ["2023-11-30", 2],
+            ["2023-12-15", 1],
+            ["2023-12-26", 3],
+          ],
+        },
+        2024: {
+          total: 259,
+          sparse: [
+            ["2024-01-22", 7],
+            ["2024-01-23", 11],
+            ["2024-01-24", 2],
+            ["2024-01-26", 1],
+            ["2024-01-28", 1],
+            ["2024-01-29", 2],
+            ["2024-01-30", 4],
+            ["2024-01-31", 1],
+            ["2024-02-05", 2],
+            ["2024-02-12", 3],
+            ["2024-02-23", 1],
+            ["2024-02-26", 1],
+            ["2024-02-27", 2],
+            ["2024-02-29", 1],
+            ["2024-03-01", 4],
+            ["2024-03-08", 1],
+            ["2024-03-09", 11],
+            ["2024-03-12", 3],
+            ["2024-03-13", 3],
+            ["2024-03-17", 1],
+            ["2024-03-20", 2],
+            ["2024-03-22", 7],
+            ["2024-03-23", 2],
+            ["2024-03-24", 5],
+            ["2024-03-25", 1],
+            ["2024-03-27", 1],
+            ["2024-03-31", 1],
+            ["2024-04-21", 7],
+            ["2024-04-22", 3],
+            ["2024-04-23", 3],
+            ["2024-04-24", 1],
+            ["2024-04-26", 1],
+            ["2024-06-25", 10],
+            ["2024-06-26", 8],
+            ["2024-06-27", 6],
+            ["2024-07-12", 2],
+            ["2024-07-18", 1],
+            ["2024-07-19", 13],
+            ["2024-07-25", 4],
+            ["2024-08-18", 1],
+            ["2024-08-29", 4],
+            ["2024-09-18", 1],
+            ["2024-09-24", 2],
+            ["2024-09-29", 6],
+            ["2024-09-30", 1],
+            ["2024-10-03", 1],
+            ["2024-10-04", 8],
+            ["2024-10-07", 6],
+            ["2024-10-08", 1],
+            ["2024-10-09", 5],
+            ["2024-10-12", 5],
+            ["2024-10-13", 6],
+            ["2024-10-14", 2],
+            ["2024-10-15", 3],
+            ["2024-10-16", 1],
+            ["2024-10-21", 3],
+            ["2024-10-22", 1],
+            ["2024-10-24", 4],
+            ["2024-10-25", 2],
+            ["2024-10-26", 6],
+            ["2024-10-28", 2],
+            ["2024-10-30", 1],
+            ["2024-11-01", 1],
+            ["2024-11-02", 2],
+            ["2024-11-05", 1],
+            ["2024-11-06", 1],
+            ["2024-11-07", 1],
+            ["2024-11-11", 2],
+            ["2024-11-19", 1],
+            ["2024-11-21", 1],
+            ["2024-11-23", 3],
+            ["2024-11-24", 1],
+            ["2024-11-25", 2],
+            ["2024-11-27", 1],
+            ["2024-11-28", 1],
+            ["2024-12-02", 1],
+            ["2024-12-03", 8],
+            ["2024-12-04", 4],
+            ["2024-12-06", 7],
+            ["2024-12-23", 8],
+            ["2024-12-24", 1],
+          ],
+        },
+        2025: {
+          total: 543,
+          sparse: [
+            ["2025-01-01", 1],
+            ["2025-02-06", 1],
+            ["2025-02-24", 4],
+            ["2025-03-04", 1],
+            ["2025-04-14", 33],
+            ["2025-04-24", 2],
+            ["2025-04-25", 46],
+            ["2025-04-26", 1],
+            ["2025-05-11", 1],
+            ["2025-06-17", 1],
+            ["2025-06-20", 6],
+            ["2025-06-22", 8],
+            ["2025-06-28", 1],
+            ["2025-07-02", 1],
+            ["2025-08-25", 10],
+            ["2025-08-26", 9],
+            ["2025-08-27", 16],
+            ["2025-08-28", 30],
+            ["2025-08-29", 32],
+            ["2025-08-30", 33],
+            ["2025-09-01", 20],
+            ["2025-09-06", 5],
+            ["2025-09-08", 11],
+            ["2025-09-10", 4],
+            ["2025-09-11", 7],
+            ["2025-09-12", 10],
+            ["2025-09-13", 7],
+            ["2025-09-14", 2],
+            ["2025-09-15", 3],
+            ["2025-09-19", 7],
+            ["2025-09-26", 3],
+            ["2025-09-27", 5],
+            ["2025-10-01", 15],
+            ["2025-10-02", 35],
+            ["2025-10-03", 32],
+            ["2025-10-04", 12],
+            ["2025-10-06", 36],
+            ["2025-10-16", 3],
+            ["2025-10-17", 1],
+            ["2025-10-20", 1],
+            ["2025-10-22", 2],
+            ["2025-10-23", 2],
+            ["2025-10-27", 1],
+            ["2025-10-30", 1],
+            ["2025-11-03", 1],
+            ["2025-11-12", 2],
+            ["2025-12-06", 27],
+            ["2025-12-10", 3],
+            ["2025-12-13", 25],
+            ["2025-12-14", 12],
+            ["2025-12-15", 2],
+            ["2025-12-18", 9],
+          ],
+        },
+        2026: {
+          total: 196,
+          sparse: [
+            ["2026-01-05", 11],
+            ["2026-01-16", 2],
+            ["2026-01-26", 5],
+            ["2026-02-05", 3],
+            ["2026-02-14", 3],
+            ["2026-02-15", 31],
+            ["2026-02-16", 30],
+            ["2026-02-27", 10],
+            ["2026-03-02", 13],
+            ["2026-03-04", 25],
+            ["2026-03-05", 16],
+            ["2026-03-06", 2],
+            ["2026-03-09", 22],
+            ["2026-03-15", 1],
+            ["2026-03-19", 21],
+            ["2026-04-08", 1],
+          ],
+        },
+      };
+      const STAKS_SOR_HISTORY = Object.entries(STAKS_SOR_SPARSE)
+        .sort(([a], [b]) => +a - +b)
+        .map(([yr, { total, sparse }]) => ({
+          year: +yr,
+          total,
+          days: expandSparse(
+            +yr,
+            sparse,
+            +yr === 2026 ? "2026-04-08" : undefined,
+          ),
+        }));
+
       // ── Deterministic PRNG (Mulberry32) ──────────────────────────────────
       function makePRNG(initSeed) {
         let s = initSeed;
@@ -3398,13 +3763,18 @@
       }
 
       // ── Core sky renderer ─────────────────────────────────────────────────
-      function renderYearSky(yearData, idx) {
+      function renderYearSky(
+        yearData,
+        idx,
+        containerId = "year-sections",
+        prefix = "",
+      ) {
         const { year, total } = yearData;
-        const variantLetter = `y${year}`;
+        const variantLetter = `${prefix}y${year}`;
 
-        const sectionId = `section-${year}`;
-        const svgId = `sky-${year}`;
-        const monthsId = `months-${year}`;
+        const sectionId = `${prefix}section-${year}`;
+        const svgId = `${prefix}sky-${year}`;
+        const monthsId = `${prefix}months-${year}`;
 
         // Determine grid dimensions from the actual data
         // days is [[date, count], ...]
@@ -3467,7 +3837,7 @@
           const labelsY = document.createElement("div");
           labelsY.className = "labels-y";
           labelsY.innerHTML =
-            "<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>";
+            "<span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span>";
           wrapper.appendChild(labelsY);
 
           const emptySvgContainer = document.createElement("div");
@@ -3480,7 +3850,7 @@
           emptySvgContainer.appendChild(emptySky);
           wrapper.appendChild(emptySvgContainer);
           section.appendChild(wrapper);
-          document.getElementById("year-sections").appendChild(section);
+          document.getElementById(containerId).appendChild(section);
           return;
         }
 
@@ -3493,7 +3863,7 @@
         const labelsY = document.createElement("div");
         labelsY.className = "labels-y";
         labelsY.innerHTML =
-          "<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>";
+          "<span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span><span></span>";
         wrapper.appendChild(labelsY);
 
         const svgContainer = document.createElement("div");
@@ -3529,7 +3899,7 @@
         svgContainer.appendChild(svgEl);
         wrapper.appendChild(svgContainer);
         section.appendChild(wrapper);
-        document.getElementById("year-sections").appendChild(section);
+        document.getElementById(containerId).appendChild(section);
 
         // Build data array with grid positions
         const rng = makePRNG(year);
@@ -3832,8 +4202,13 @@
         }
       }
 
-      // ── Render all 9 years ────────────────────────────────────────────────
+      // ── Render kiaquila into #year-sections ───────────────────────────────
       REAL_HISTORY.forEach(renderYearSky);
+
+      // ── Render Staks-sor into #year-sections-staks ────────────────────────
+      STAKS_SOR_HISTORY.forEach((d, i) =>
+        renderYearSky(d, i, "year-sections-staks", "staks-"),
+      );
     </script>
   </body>
 </html>
