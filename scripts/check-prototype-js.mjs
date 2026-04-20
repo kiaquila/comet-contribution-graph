@@ -96,6 +96,55 @@ function splitParams(paramStr) {
   return parts.filter(Boolean);
 }
 
+// Strip // and /* */ comments from JS source, skipping string/template literals
+// so comment-like text inside strings is preserved.
+function stripComments(code) {
+  let result = "";
+  let i = 0;
+  let inString = "";
+  let escaped = false;
+  while (i < code.length) {
+    const ch = code[i];
+    if (escaped) {
+      escaped = false;
+      result += ch;
+      i++;
+      continue;
+    }
+    if (ch === "\\" && inString) {
+      escaped = true;
+      result += ch;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (ch === inString) inString = "";
+      result += ch;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      inString = ch;
+      result += ch;
+      i++;
+      continue;
+    }
+    if (ch === "/" && code[i + 1] === "/") {
+      while (i < code.length && code[i] !== "\n") i++;
+      continue;
+    }
+    if (ch === "/" && code[i + 1] === "*") {
+      i += 2;
+      while (i < code.length && !(code[i] === "*" && code[i + 1] === "/")) i++;
+      i += 2;
+      continue;
+    }
+    result += ch;
+    i++;
+  }
+  return result;
+}
+
 // Step 1: syntax check.
 // - Classic scripts: vm.Script (catches missing arrows, unclosed braces, etc.)
 // - Module scripts: vm.SourceTextModule (module grammar: import/export/top-level await)
@@ -141,25 +190,27 @@ function arityCheck(htmlFiles) {
     const scripts = extractInlineScripts(html);
     for (let i = 0; i < scripts.length; i++) {
       const { code } = scripts[i];
+      // Strip comments so `// arr.forEach(fn)` doesn't trigger a false positive.
+      const stripped = stripComments(code);
       const callRe = /\.forEach\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\)/g;
       let callMatch;
-      while ((callMatch = callRe.exec(code)) !== null) {
+      while ((callMatch = callRe.exec(stripped)) !== null) {
         const fn = callMatch[1];
         const fnEsc = escapeRegex(fn);
+        // Use first definition only — first match is the outermost (canonical) scope.
+        // Checking all matches risks false-positives from inner shadowing functions.
         const defPatterns = [
-          new RegExp(`function\\s+${fnEsc}\\s*\\(([^)]*?)\\)`, "g"),
+          new RegExp(`function\\s+${fnEsc}\\s*\\(([^)]*?)\\)`),
           new RegExp(
             `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?\\(([^)]*?)\\)\\s*=>`,
-            "g",
           ),
           new RegExp(
             `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?function\\s*\\(([^)]*?)\\)`,
-            "g",
           ),
         ];
         for (const defRe of defPatterns) {
-          let defMatch;
-          while ((defMatch = defRe.exec(code)) !== null) {
+          const defMatch = defRe.exec(stripped);
+          if (defMatch) {
             const params = splitParams(defMatch[1] ?? "");
             const withDefaults = params.filter((p) => /=/.test(p));
             if (params.length >= 2 && withDefaults.length > 0) {
@@ -173,6 +224,7 @@ function arityCheck(htmlFiles) {
               console.error(`  Fix: .forEach((item) => ${fn}(item))`);
               failed = true;
             }
+            break;
           }
         }
       }
