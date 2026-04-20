@@ -560,7 +560,7 @@
           </defs>
           <path d="${pathD}" class="constellation-path" />
           <path d="${pathD}" class="comet-trail-path" id="${trailId}" stroke="url(#${gradId})" />
-          <circle id="${headId}" r="4" fill="#ffffff" class="comet-head"
+          <circle id="${headId}" cx="-1000" cy="-1000" r="4" fill="#ffffff" class="comet-head"
             style="filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 10px rgba(200,224,255,0.9));" />
         `;
 
@@ -576,14 +576,14 @@
             const rayLen = 5.0 + (effectiveCount - 15) * 1.0;
             const diagLen = rayLen * 0.45;
             const diagOff = diagLen * 0.707;
-            const sphereR = haloR * 1.5;
+            const sphereR = haloR * 1.2;
             const haloFilter = peakHaloFilter(effectiveCount, variantLetter);
 
             el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
             // 1. Halo
             el += `<circle class="peak-halo" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${haloR.toFixed(2)}" fill="hsla(48,100%,74%,0.35)" filter="${haloFilter}" />`;
             // 2. Organic sphere overlay (NEW v5)
-            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,80%,96%,0.20)" filter="url(#organic-sphere-${variantLetter})" />`;
+            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,100%,98%,0.32)" filter="url(#organic-sphere-${variantLetter})" />`;
             // 3. Diagonal rays
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
