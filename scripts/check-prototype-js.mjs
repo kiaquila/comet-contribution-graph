@@ -28,9 +28,11 @@ function extractInlineScripts(html) {
     const attrs = match[1];
     const code = match[2];
     let mode = "classic";
-    const typeMatch = attrs.match(/type\s*=\s*["']([^"']+)["']/i);
+    const typeMatch = attrs.match(
+      /type\s*=\s*(?:["']([^"']+)["']|([^\s>"']+))/i,
+    );
     if (typeMatch) {
-      const t = typeMatch[1].toLowerCase();
+      const t = (typeMatch[1] ?? typeMatch[2]).toLowerCase();
       if (t === "module") {
         mode = "module";
       } else if (t !== "text/javascript" && t !== "application/javascript") {
@@ -53,12 +55,34 @@ function escapeRegex(s) {
 }
 
 // Split a parameter list string on top-level commas only, ignoring commas
-// inside brackets/braces/parens (e.g. default values like `{x: 1, y: 2}`).
+// inside brackets/braces/parens or string/template literals.
 function splitParams(paramStr) {
   const parts = [];
   let depth = 0;
+  let inString = "";
+  let escaped = false;
   let current = "";
   for (const ch of paramStr) {
+    if (escaped) {
+      escaped = false;
+      current += ch;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      current += ch;
+      continue;
+    }
+    if (inString) {
+      if (ch === inString) inString = "";
+      current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      inString = ch;
+      current += ch;
+      continue;
+    }
     if ("{([".includes(ch)) depth++;
     else if ("})]".includes(ch)) depth--;
     else if (ch === "," && depth === 0) {
