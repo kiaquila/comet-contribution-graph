@@ -4052,7 +4052,7 @@
               <filter id="organic-sphere-${variantLetter}" x="-80%" y="-80%" width="260%" height="260%">
                 <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" />
                 <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-                <feGaussianBlur in="displaced" stdDeviation="2.0" />
+                <feGaussianBlur in="displaced" stdDeviation="1.4" />
               </filter>
             </defs>
             <path d="${pathD}" class="constellation-path" />
@@ -4076,7 +4076,7 @@
               <filter id="organic-sphere-${variantLetter}" x="-80%" y="-80%" width="260%" height="260%">
                 <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" />
                 <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-                <feGaussianBlur in="displaced" stdDeviation="2.0" />
+                <feGaussianBlur in="displaced" stdDeviation="1.4" />
               </filter>
             </defs>
           `;
@@ -4091,7 +4091,8 @@
             let effectiveCount;
             if (isSmallAccount) {
               const relRank = d.count / maxCount;
-              effectiveCount = 15 + Math.round(relRank * 4);
+              const scaleBoost = yearTotal === 1 ? 7 : yearTotal <= 3 ? 6 : 5;
+              effectiveCount = 15 + Math.round(relRank * scaleBoost);
             } else {
               effectiveCount = Math.min(d.count, 19);
             }
@@ -4100,12 +4101,12 @@
             const rayLen = 5.0 + (effectiveCount - 15) * 1.0;
             const diagLen = rayLen * 0.45;
             const diagOff = diagLen * 0.707;
-            const sphereR = haloR * 1.2;
+            const sphereR = haloR * 0.75;
             const haloFilter = peakHaloFilter(effectiveCount, variantLetter);
 
             el += `<g transform="rotate(${d.angle.toFixed(1)},${d.cx.toFixed(2)},${d.cy.toFixed(2)})">`;
             el += `<circle class="peak-halo" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${haloR.toFixed(2)}" fill="hsla(48,100%,74%,0.35)" filter="${haloFilter}" />`;
-            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,100%,98%,0.32)" filter="url(#organic-sphere-${variantLetter})" />`;
+            el += `<circle class="peak-sphere" cx="${d.cx.toFixed(2)}" cy="${d.cy.toFixed(2)}" r="${sphereR.toFixed(2)}" fill="hsla(50,100%,99%,0.55)" filter="url(#organic-sphere-${variantLetter})" />`;
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy - diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy + diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
             el += `<line x1="${(d.cx - diagOff).toFixed(2)}" y1="${(d.cy + diagOff).toFixed(2)}" x2="${(d.cx + diagOff).toFixed(2)}" y2="${(d.cy - diagOff).toFixed(2)}" stroke="${fill}" stroke-width="0.4" stroke-opacity="0.42" stroke-linecap="round" />`;
             el += `<line x1="${(d.cx - rayLen).toFixed(2)}" y1="${d.cy.toFixed(2)}" x2="${(d.cx + rayLen).toFixed(2)}" y2="${d.cy.toFixed(2)}" stroke="${fill}" stroke-width="0.5" stroke-linecap="round" />`;
@@ -4203,7 +4204,7 @@
       }
 
       // ── Render kiaquila into #year-sections ───────────────────────────────
-      REAL_HISTORY.forEach(renderYearSky);
+      REAL_HISTORY.forEach((d, i) => renderYearSky(d, i));
 
       // ── Render Staks-sor into #year-sections-staks ────────────────────────
       STAKS_SOR_HISTORY.forEach((d, i) =>
