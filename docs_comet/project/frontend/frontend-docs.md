@@ -33,6 +33,22 @@ This layering ensures the core rendering path is Action-compatible from the star
 - **Bundle size:** the GitHub Action artifact must be self-contained and reasonably sized. Avoid large runtime dependencies in the data/SVG layer; prefer lightweight or zero-dep approaches.
 - **CDN supply-chain risk:** any CDN dependency (fonts, scripts) added to the prototype must be evaluated for SRI-pinning feasibility before it enters production. The current Space Mono Google Fonts import is prototype-only and will need to be replaced or bundled for Action output.
 
+## JS Validation in CI
+
+`pnpm run check:js` (part of `pnpm run ci`) lints inline `<script>` blocks in all
+HTML prototypes using ESLint v9 + `eslint-plugin-html`. Rules in force:
+
+- `unicorn/no-array-callback-reference` — catches the forEach arity trap: passing a
+  named function with default params directly to `.forEach()` causes the third callback
+  arg (the array itself) to silently override those defaults.
+- `prefer-regex-literals` — flags `new RegExp(dynamicString)` where a literal would be
+  safer; prevents unescaped interpolation bugs.
+- `no-invalid-regexp` — syntax-checks RegExp patterns at lint time.
+- Parser in `sourceType: "script"` mode by default; `eslint-plugin-html` auto-switches
+  to `sourceType: "module"` for `<script type="module">` tags.
+
+Config lives in `eslint.config.mjs` at the repo root.
+
 ## Accessibility
 
 - Grid cells should carry `aria-label` with the date and contribution count
