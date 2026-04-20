@@ -3876,7 +3876,10 @@
         );
         svgEl.id = svgId;
         svgEl.setAttribute("role", "img");
-        svgEl.setAttribute("aria-labelledby", `title-${year} desc-${year}`);
+        svgEl.setAttribute(
+          "aria-labelledby",
+          `${prefix}title-${year} ${prefix}desc-${year}`,
+        );
         svgEl.classList.add("sky-svg");
         svgEl.style.width = `${svgWidth}px`;
 
@@ -3884,7 +3887,7 @@
           "http://www.w3.org/2000/svg",
           "title",
         );
-        titleEl.id = `title-${year}`;
+        titleEl.id = `${prefix}title-${year}`;
         titleEl.textContent = `${year} contribution sky — ${total} contribution${total === 1 ? "" : "s"}`;
         svgEl.appendChild(titleEl);
 
@@ -3892,8 +3895,8 @@
           "http://www.w3.org/2000/svg",
           "desc",
         );
-        descEl.id = `desc-${year}`;
-        descEl.textContent = `Night-sky grid showing kiaquila's GitHub contributions in ${year}. ${total} total contributions. Peak days highlighted in gold with animated comet.`;
+        descEl.id = `${prefix}desc-${year}`;
+        descEl.textContent = `Night-sky grid showing GitHub contributions in ${year}. ${total} total contributions. Peak days highlighted in gold with animated comet.`;
         svgEl.appendChild(descEl);
 
         svgContainer.appendChild(svgEl);
