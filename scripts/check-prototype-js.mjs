@@ -27,18 +27,17 @@ function extractInlineScripts(html) {
   while ((match = re.exec(html)) !== null) {
     const attrs = match[1];
     const code = match[2];
+    let mode = "classic";
     const typeMatch = attrs.match(/type\s*=\s*["']([^"']+)["']/i);
     if (typeMatch) {
       const t = typeMatch[1].toLowerCase();
-      if (
-        t !== "text/javascript" &&
-        t !== "application/javascript" &&
-        t !== "module"
-      ) {
+      if (t === "module") {
+        mode = "module";
+      } else if (t !== "text/javascript" && t !== "application/javascript") {
         continue;
       }
     }
-    if (code.trim()) scripts.push(code);
+    if (code.trim()) scripts.push({ code, mode });
   }
   return scripts;
 }
@@ -47,18 +46,39 @@ function rel(file) {
   return relative(repoRoot, file);
 }
 
-// Step 1: syntax check via vm.Script (catches missing arrows, unclosed braces, etc.)
-function syntaxCheck(htmlFiles) {
+// Escape a JS identifier for safe interpolation into a RegExp source.
+// Identifiers may contain `$`, which is a regex end-anchor metacharacter.
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Step 1: syntax check.
+// - Classic scripts: vm.Script (catches missing arrows, unclosed braces, etc.)
+// - Module scripts: vm.SourceTextModule (module grammar: import/export/top-level await)
+async function syntaxCheck(htmlFiles) {
   let failed = false;
+  const hasSourceTextModule = typeof vm.SourceTextModule === "function";
   for (const file of htmlFiles) {
     const html = readFileSync(file, "utf8");
     const scripts = extractInlineScripts(html);
     for (let i = 0; i < scripts.length; i++) {
+      const { code, mode } = scripts[i];
       try {
-        new vm.Script(scripts[i]);
+        if (mode === "module") {
+          if (hasSourceTextModule) {
+            new vm.SourceTextModule(code);
+          } else {
+            console.error(`\n⚠ SKIP   ${rel(file)}  (block ${i + 1}, module)`);
+            console.error(
+              `  vm.SourceTextModule unavailable — re-run with --experimental-vm-modules`,
+            );
+          }
+        } else {
+          new vm.Script(code);
+        }
       } catch (e) {
         if (e instanceof SyntaxError) {
-          console.error(`\n✗ SYNTAX  ${rel(file)}  (block ${i + 1})`);
+          console.error(`\n✗ SYNTAX  ${rel(file)}  (block ${i + 1}, ${mode})`);
           console.error(`  ${e.message.split("\n")[0]}`);
           failed = true;
         }
@@ -76,19 +96,20 @@ function arityCheck(htmlFiles) {
     const html = readFileSync(file, "utf8");
     const scripts = extractInlineScripts(html);
     for (let i = 0; i < scripts.length; i++) {
-      const code = scripts[i];
+      const { code } = scripts[i];
       const callRe = /\.forEach\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\)/g;
       let callMatch;
       while ((callMatch = callRe.exec(code)) !== null) {
         const fn = callMatch[1];
+        const fnEsc = escapeRegex(fn);
         const defPatterns = [
-          new RegExp(`function\\s+${fn}\\s*\\(([^)]*?)\\)`, "g"),
+          new RegExp(`function\\s+${fnEsc}\\s*\\(([^)]*?)\\)`, "g"),
           new RegExp(
-            `(?:const|let|var)\\s+${fn}\\s*=\\s*(?:async\\s+)?\\(([^)]*?)\\)\\s*=>`,
+            `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?\\(([^)]*?)\\)\\s*=>`,
             "g",
           ),
           new RegExp(
-            `(?:const|let|var)\\s+${fn}\\s*=\\s*(?:async\\s+)?function\\s*\\(([^)]*?)\\)`,
+            `(?:const|let|var)\\s+${fnEsc}\\s*=\\s*(?:async\\s+)?function\\s*\\(([^)]*?)\\)`,
             "g",
           ),
         ];
@@ -129,7 +150,7 @@ if (htmlFiles.length === 0) {
 
 console.log(`check:js — scanning ${htmlFiles.length} prototype(s)...`);
 
-const syntaxFailed = syntaxCheck(htmlFiles);
+const syntaxFailed = await syntaxCheck(htmlFiles);
 const arityFailed = arityCheck(htmlFiles);
 
 if (syntaxFailed || arityFailed) {
