@@ -262,6 +262,11 @@ for (const badBranch of [
   "foo/.bar",
   "foo/bar.lock/baz",
   "foo/@{squish}",
+  "HEAD",
+  "FETCH_HEAD",
+  "ORIG_HEAD",
+  "MERGE_HEAD",
+  "CHERRY_PICK_HEAD",
 ]) {
   test(`branch rejected by git rules: '${badBranch}' → setFailed before fetch`, async () => {
     setupEnv({ INPUT_BRANCH: badBranch });

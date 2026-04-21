@@ -11,6 +11,20 @@ import { DARK_THEME } from "./themes.js";
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const BRANCH_CHARSET_RE = /^[A-Za-z0-9._/-]{1,100}$/;
 
+// Names git treats as pseudo-refs rather than ordinary branches. Using any
+// of these with `git checkout --orphan` or `git push HEAD:<name>` fails
+// fatally, and they never make sense as an output-branch for a profile
+// Action. Reject them so the error surfaces before fetch/render work.
+const RESERVED_GIT_REFS = new Set([
+  "HEAD",
+  "FETCH_HEAD",
+  "ORIG_HEAD",
+  "MERGE_HEAD",
+  "CHERRY_PICK_HEAD",
+  "REVERT_HEAD",
+  "BISECT_HEAD",
+]);
+
 // Subset of git-check-ref-format --branch sufficient to reject inputs the
 // broad BRANCH_CHARSET_RE lets through. Rules are applied per slash-
 // delimited segment (git refs are path-like): `foo/.bar` and
@@ -20,6 +34,7 @@ const BRANCH_CHARSET_RE = /^[A-Za-z0-9._/-]{1,100}$/;
 function isValidGitBranchName(name: string): boolean {
   if (!BRANCH_CHARSET_RE.test(name)) return false;
   if (name === "@") return false;
+  if (RESERVED_GIT_REFS.has(name)) return false;
   if (name.startsWith("-")) return false; // ambiguous with a CLI flag
   if (name.startsWith("/") || name.endsWith("/")) return false;
   if (name.endsWith(".")) return false;
