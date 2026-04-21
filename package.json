@@ -8,7 +8,7 @@
     "build": "node scripts/build-static.mjs",
     "build:action": "ncc build src/action.ts -o dist-action --minify --license licenses.txt",
     "build:renderer": "tsc",
-    "check:dist": "pnpm run build:action && git diff --exit-code dist-action",
+    "check:dist": "pnpm run build:action && node scripts/check-dist.mjs dist-action",
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
     "fetch:sample": "node scripts/fetch-contributions.mjs",
@@ -42,5 +42,10 @@
   "engines": {
     "node": ">=20",
     "pnpm": ">=10.16"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": "^6.24.0"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as core from "@actions/core";
 import * as actionsExec from "@actions/exec";
 import { fetchContributions } from "./data.js";
@@ -149,6 +150,7 @@ async function pushOrphan(args: {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const entrypoint = process.argv[1];
+if (entrypoint && fileURLToPath(import.meta.url) === entrypoint) {
   void run();
 }

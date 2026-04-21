@@ -13,3 +13,8 @@ sample-out/
 .env
 .env.local
 .env.*.local
+
+# ncc emits .d.ts.map source maps with absolute paths baked in, so they
+# differ byte-for-byte between local and CI. No runtime value for a
+# bundled Action — keep them out of git to stabilize check:dist.
+dist-action/*.d.ts.map
