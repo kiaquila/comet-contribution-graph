@@ -9,6 +9,7 @@
     "build:renderer": "tsc",
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
+    "fetch:sample": "node scripts/fetch-contributions.mjs",
     "check:html": "html-validate prototypes/variant-d-grid-peaks.html",
     "check:js": "eslint \"prototypes/**/*.html\"",
     "check:ts": "tsc --noEmit",
