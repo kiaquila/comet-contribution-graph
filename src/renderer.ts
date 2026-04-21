@@ -99,19 +99,18 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function nonPeakRadius(count: number): number {
-  return Math.min(0.8 + count * 0.22, 3.0);
+function nonPeakRadius(intensity: number): number {
+  return 0.8 + intensity * 2.2;
 }
 
-function nonPeakFill(count: number, hue: number): string {
-  const t = Math.min(count, 10) / 10;
-  const s = lerp(42, 72, t);
-  const l = lerp(28, 82, t);
+function nonPeakFill(intensity: number, hue: number): string {
+  const s = lerp(42, 72, intensity);
+  const l = lerp(28, 82, intensity);
   return `hsl(${hue},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
 }
 
-function nonPeakOpacity(count: number): number {
-  return 0.45 + Math.min(count, 10) * 0.05;
+function nonPeakOpacity(intensity: number): number {
+  return 0.45 + intensity * 0.5;
 }
 
 function peakFill(count: number): string {
@@ -148,7 +147,7 @@ function layout(
     if (d.isPeak) {
       rng();
       shape = "spike";
-    } else if (d.count >= 8) {
+    } else if (d.intensity >= 0.55) {
       shape = rng() < 0.3 ? "spike" : "circle";
     } else {
       rng();
@@ -205,9 +204,9 @@ function renderBgStars(
 }
 
 function renderStar(d: PlacedDay, theme: Theme): string {
-  const r = nonPeakRadius(d.count);
-  const fill = nonPeakFill(d.count, theme.dataStarHue);
-  const opacity = nonPeakOpacity(d.count);
+  const r = nonPeakRadius(d.intensity);
+  const fill = nonPeakFill(d.intensity, theme.dataStarHue);
+  const opacity = nonPeakOpacity(d.intensity);
   let out = `<circle${attrs([
     ["cx", d.cx],
     ["cy", d.cy],
@@ -373,15 +372,21 @@ function renderMonthLabels(
   let out = "";
   let lastMonth = -1;
   for (let col = 0; col < GRID_COLS; col++) {
-    const idx = col * GRID_ROWS;
-    const d = days[idx];
-    if (!d) break;
-    const parsed = new Date(`${d.date}T00:00:00Z`);
-    if (Number.isNaN(parsed.getTime())) continue;
-    const month = parsed.getUTCMonth();
-    if (month === lastMonth) continue;
-    lastMonth = month;
-    const label = MONTHS[month] ?? "";
+    let newMonth = -1;
+    for (let row = 0; row < GRID_ROWS; row++) {
+      const d = days[col * GRID_ROWS + row];
+      if (!d) continue;
+      const parsed = new Date(`${d.date}T00:00:00Z`);
+      if (Number.isNaN(parsed.getTime())) continue;
+      const m = parsed.getUTCMonth();
+      if (m !== lastMonth) {
+        newMonth = m;
+        break;
+      }
+    }
+    if (newMonth === -1) continue;
+    lastMonth = newMonth;
+    const label = MONTHS[newMonth] ?? "";
     const x = GRID_X0 + col * CELL_SIZE;
     out += `<text${attrs([
       ["x", x],
