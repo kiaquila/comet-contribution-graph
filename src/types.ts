@@ -43,3 +43,7 @@ export interface Normalization {
   readonly median: number;
   readonly peakFloor: number;
 }
+
+export interface FetchOptions {
+  readonly now?: Date;
+}
