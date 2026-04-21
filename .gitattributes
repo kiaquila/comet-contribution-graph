@@ -1,0 +1,2 @@
+dist-action/** linguist-generated=true
+dist-action/** -diff

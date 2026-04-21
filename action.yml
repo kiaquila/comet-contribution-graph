@@ -1,0 +1,25 @@
+name: "Comet contribution graph"
+description: "Render a cinematic comet contribution graph SVG for your GitHub profile README."
+author: "kiaquila"
+branding:
+  icon: "star"
+  color: "purple"
+inputs:
+  username:
+    description: "GitHub login to render the graph for"
+    required: true
+  token:
+    description: "Token with 'contents:write' scope on the target repository (used to force-push the SVG branch). Default uses the Action's built-in GITHUB_TOKEN, which has contents:write on the current repo by default. For a cross-repo setup use a classic PAT with 'repo' scope or a fine-grained PAT with 'Contents: Read and write'."
+    required: false
+    default: ${{ github.token }}
+  reduced:
+    description: "Also emit a static comet-reduced.svg companion for prefers-reduced-motion fallback."
+    required: false
+    default: "true"
+  branch:
+    description: "Output branch. Force-pushed on every run."
+    required: false
+    default: "comet-graph"
+runs:
+  using: "node20"
+  main: "dist-action/index.js"

@@ -6,12 +6,14 @@
 
 Publish a public GitHub Action that any developer installs in their profile repo to render a cinematic contribution graph — a comet traces a path across constellation-like peaks of their most productive days, with a starry-sky background. The generated animated SVG is embedded in the profile README (the "About me" card), in the spirit of [Platane/snk](https://github.com/Platane/snk).
 
-## Status (2026-04-20)
+## Status (2026-04-21)
 
 - Prototype (`prototypes/variant-d-grid-peaks.html`) — shipped, polished, on Vercel preview (PR #2 merged).
-- CI infra (ESLint, html-validate, feature-memory gate, Playwright smoke, Codex review) — green (PR #4 open/merging).
-- **PR 002 — renderer extraction — in review.** All local checks green (28 tests, snapshot parity, TS strict compile). Awaiting `@codex review` cycles.
-- PR 003/004/005 — not started; specs not yet written (see "Forward-referencing specs" below).
+- CI infra (ESLint, html-validate, feature-memory gate, Playwright smoke, Codex review) — green (PR #4 merged).
+- PR 002 — renderer extraction — merged. Pure-TS SVG renderer, SMIL animation, snapshot tests.
+- PR 003 — data layer — merged. GraphQL `contributionsCollection` fetcher + parser, 43 tests.
+- **PR 004 — Action entrypoint — in review.** `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push. All local checks green.
+- PR 005 — not started; spec not yet written (see "Forward-referencing specs" below).
 
 ### Closed-in-PR-002 scope
 
@@ -33,12 +35,12 @@ Publish a public GitHub Action that any developer installs in their profile repo
 
 ## 4-PR roadmap to MVP
 
-| #   | Spec                                                                      | Size | What lands                                                                                                                                                                                      |
-| --- | ------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 002 | [specs/002-renderer-extraction/](../../../specs/002-renderer-extraction/) | L    | Pure TS SVG renderer (`src/renderer.ts`, `normalize.ts`, `themes.ts`, `prng.ts`), TypeScript toolchain, SMIL animation migration, snapshot tests against fixture profiles. Prototype untouched. |
-| 003 | `specs/003-data-layer/` (created when PR 002 merges)                      | M    | `src/data.ts` — GraphQL `contributionsCollection` fetcher + parser, fixture JSON files, CLI `scripts/fetch-contributions.mjs` for manual real-data verification.                                |
-| 004 | `specs/004-action-entrypoint/` (created when PR 003 merges)               | L    | `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist/` + orphan force-push to `comet-graph` branch. CI "dist up-to-date" check. `.gitattributes linguist-generated`.                  |
-| 005 | `specs/005-dogfood/` (created when PR 004 merges)                         | S    | `.github/workflows/comet-graph.yml` (weekly cron + `workflow_dispatch`), README overhaul with `<img>` embed (optional `<picture>` for reduced-motion fallback), usage docs for external users.  |
+| #   | Spec                                                                      | Size | What lands                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 002 | [specs/002-renderer-extraction/](../../../specs/002-renderer-extraction/) | L    | Pure TS SVG renderer (`src/renderer.ts`, `normalize.ts`, `themes.ts`, `prng.ts`), TypeScript toolchain, SMIL animation migration, snapshot tests against fixture profiles. Prototype untouched.      |
+| 003 | `specs/003-data-layer/` (created when PR 002 merges)                      | M    | `src/data.ts` — GraphQL `contributionsCollection` fetcher + parser, fixture JSON files, CLI `scripts/fetch-contributions.mjs` for manual real-data verification.                                     |
+| 004 | [specs/004-action-entrypoint/](../../../specs/004-action-entrypoint/)     | L    | `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push to `comet-graph` branch. CI "dist up-to-date" check. `.gitattributes linguist-generated`. **In review.** |
+| 005 | `specs/005-dogfood/` (created when PR 004 merges)                         | S    | `.github/workflows/comet-graph.yml` (weekly cron + `workflow_dispatch`), README overhaul with `<img>` embed (optional `<picture>` for reduced-motion fallback), usage docs for external users.       |
 
 **Why 4 PRs, not 3 or 5.** Three would combine TypeScript toolchain, rendering, GraphQL, and normalization in one PR — too broad for Codex review (historical data: 6 cycles on L-size PRs). Five would split normalization away from its only consumer (the renderer), violating the CLAUDE.md "no abstractions for single-use" rule.
 
@@ -107,7 +109,7 @@ A second artifact — `comet-reduced.svg` — is a static variant (no `<animate>
 
 ### Deploy
 
-GitHub Action → orphan force-push to `comet-graph` branch containing only the generated SVG files. README references stable `raw.githubusercontent.com` URLs.
+GitHub Action (`action.yml`, `runs.main: dist-action/index.js`) → orphan force-push to `comet-graph` branch containing only the generated SVG files. `dist-action/index.js` is a committed `@vercel/ncc` single-file bundle; `dist-action/** linguist-generated=true -diff` in `.gitattributes` collapses it in PR diff view. README references stable `raw.githubusercontent.com` URLs.
 
 ### Cache behavior
 

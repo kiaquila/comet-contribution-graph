@@ -36,6 +36,9 @@ const requiredFiles = [
   ".github/workflows/ai-command-policy.yml",
   ".github/workflows/osv-scan.yml",
   ".github/dependabot.yml",
+  "action.yml",
+  ".gitattributes",
+  "dist-action/index.js",
 ];
 
 const requiredDirs = ["specs"];
