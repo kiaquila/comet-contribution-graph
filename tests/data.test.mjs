@@ -173,7 +173,8 @@ test("fetch: rolling 371-day window respects injected now", async () => {
   await fetchContributions("kiaquila", "t", { now });
   const body = JSON.parse(fetchCalls[0].init.body);
   strictEqual(body.variables.to, "2026-04-21T12:00:00.000Z");
-  strictEqual(body.variables.from, "2025-04-15T12:00:00.000Z");
+  // Inclusive 371-day window: from = now - 370 days.
+  strictEqual(body.variables.from, "2025-04-16T12:00:00.000Z");
 });
 
 test("fetch: HTTP 401 throws with status in message", async () => {

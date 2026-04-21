@@ -144,9 +144,11 @@ export function parseContributionsResponse(
 }
 
 function computeWindow(now: Date): { from: string; to: string } {
+  // GitHub's contributionsCollection treats [from, to] as inclusive bounds,
+  // so a WINDOW_DAYS-day window spans from (now - (WINDOW_DAYS - 1)) to now.
   const to = new Date(now.getTime());
   const from = new Date(now.getTime());
-  from.setUTCDate(from.getUTCDate() - WINDOW_DAYS);
+  from.setUTCDate(from.getUTCDate() - (WINDOW_DAYS - 1));
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
