@@ -35,6 +35,7 @@ function isValidGitBranchName(name: string): boolean {
   if (!BRANCH_CHARSET_RE.test(name)) return false;
   if (name === "@") return false;
   if (RESERVED_GIT_REFS.has(name)) return false;
+  if (name.startsWith("refs/")) return false;
   if (name.startsWith("-")) return false; // ambiguous with a CLI flag
   if (name.startsWith("/") || name.endsWith("/")) return false;
   if (name.endsWith(".")) return false;
@@ -152,7 +153,7 @@ async function pushOrphan(args: {
       `  git commit --quiet -m "chore: regenerate ${args.files.join(", ")}"`,
     );
     _fns.info(
-      `  git push --force --quiet https://x-access-token:<token>@github.com/${args.repo}.git HEAD:${args.branch}`,
+      `  git push --force --quiet https://x-access-token:<token>@github.com/${args.repo}.git HEAD:refs/heads/${args.branch}`,
     );
     return;
   }
@@ -183,7 +184,7 @@ async function pushOrphan(args: {
   const url = `https://x-access-token:${args.token}@github.com/${args.repo}.git`;
   await _fns.exec(
     "git",
-    ["push", "--force", "--quiet", url, `HEAD:${args.branch}`],
+    ["push", "--force", "--quiet", url, `HEAD:refs/heads/${args.branch}`],
     opts,
   );
 }

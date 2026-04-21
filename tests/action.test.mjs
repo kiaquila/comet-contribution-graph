@@ -267,6 +267,8 @@ for (const badBranch of [
   "ORIG_HEAD",
   "MERGE_HEAD",
   "CHERRY_PICK_HEAD",
+  "refs/tags/v1",
+  "refs/heads/main",
 ]) {
   test(`branch rejected by git rules: '${badBranch}' → setFailed before fetch`, async () => {
     setupEnv({ INPUT_BRANCH: badBranch });
@@ -363,6 +365,27 @@ test("push URL embeds x-access-token:<token>@github.com, not Authorization heade
   ok(
     urlArg.includes("github.com/owner/repo.git"),
     "URL must reference correct repo",
+  );
+});
+
+// Codex P2 (PR #7 round 5): push refspec must be constrained to
+// refs/heads/* so a rogue `branch` input cannot cause force-push into
+// refs/tags/* and overwrite release tags.
+test("push refspec targets refs/heads/<branch>, not bare <branch>", async () => {
+  setupEnv({ INPUT_REDUCED: "false", COMET_DRY_RUN: "0" });
+  await run();
+  const pushCall = execCalls.find(
+    ([cmd, sub]) => cmd === "git" && sub === "push",
+  );
+  ok(pushCall, "git push must be called");
+  const refspec = pushCall.find(
+    (a) => typeof a === "string" && a.startsWith("HEAD:"),
+  );
+  ok(refspec, "push must include a HEAD: refspec arg");
+  strictEqual(
+    refspec,
+    "HEAD:refs/heads/comet-graph",
+    `refspec must be 'HEAD:refs/heads/<branch>', got: ${refspec}`,
   );
 });
 
