@@ -1,4 +1,4 @@
-import type { Theme, ThemeName } from "./types.js";
+import type { Theme } from "./types.js";
 
 export const DARK_THEME: Theme = {
   name: "dark",
@@ -13,30 +13,10 @@ export const DARK_THEME: Theme = {
   dataStarHue: 214,
   peakCore: "hsl(48,100%,88%)",
   peakHalo: "hsla(48,100%,74%,0.35)",
-  cometHead: "#ffffff",
+  cometHead: "hsl(150,35%,97%)",
+  cometComaInner: "hsl(185,70%,90%)",
+  cometComaOuter: "hsl(195,90%,75%)",
+  cometTrail: "hsl(185,80%,90%)",
   constellation: "rgba(255,255,255,0.1)",
   label: "rgba(122,172,216,0.75)",
-};
-
-export const LIGHT_THEME: Theme = {
-  name: "light",
-  background: "#f5f6fa",
-  bgStarTints: [
-    "hsl(0,0%,45%)",
-    "hsl(200,45%,35%)",
-    "hsl(15,35%,40%)",
-    "hsl(130,22%,34%)",
-    "hsl(268,32%,38%)",
-  ],
-  dataStarHue: 214,
-  peakCore: "hsl(36,90%,42%)",
-  peakHalo: "hsla(36,85%,55%,0.3)",
-  cometHead: "#1b1f2b",
-  constellation: "rgba(10,20,40,0.18)",
-  label: "rgba(40,60,90,0.8)",
-};
-
-export const THEMES: Readonly<Record<ThemeName, Theme>> = {
-  dark: DARK_THEME,
-  light: LIGHT_THEME,
 };

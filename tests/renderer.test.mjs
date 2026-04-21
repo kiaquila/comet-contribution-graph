@@ -14,7 +14,7 @@ const updateSnapshots = process.env["UPDATE_SNAPSHOTS"] === "1";
 mkdirSync(snapshotsDir, { recursive: true });
 
 const { renderCometSVG } = await import(rendererPath);
-const { DARK_THEME, LIGHT_THEME } = await import(themesPath);
+const { DARK_THEME } = await import(themesPath);
 
 function loadFixture(name) {
   const path = resolve(fixturesDir, `${name}.json`);
@@ -42,21 +42,21 @@ const FIXTURES = [
   "heavy-user",
 ];
 
-const THEMES = { dark: DARK_THEME, light: LIGHT_THEME };
-
 for (const fixture of FIXTURES) {
   const days = loadFixture(fixture);
-  for (const [themeName, theme] of Object.entries(THEMES)) {
-    for (const animated of [true, false]) {
-      const variant = animated ? "animated" : "reduced";
-      const label = `${fixture}.${themeName}.${variant}`;
-      test(`snapshot: ${label}`, () => {
-        const svg = renderCometSVG(days, { theme, animated, seed: 42 });
-        assert.match(svg, /^<svg /);
-        assert.match(svg, /<\/svg>$/);
-        checkSnapshot(label, svg);
+  for (const animated of [true, false]) {
+    const variant = animated ? "animated" : "reduced";
+    const label = `${fixture}.${variant}`;
+    test(`snapshot: ${label}`, () => {
+      const svg = renderCometSVG(days, {
+        theme: DARK_THEME,
+        animated,
+        seed: 42,
       });
-    }
+      assert.match(svg, /^<svg /);
+      assert.match(svg, /<\/svg>$/);
+      checkSnapshot(label, svg);
+    });
   }
 }
 

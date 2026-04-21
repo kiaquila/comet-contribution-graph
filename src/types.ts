@@ -5,7 +5,7 @@ export interface ContributionDay {
   readonly count: number;
 }
 
-export type ThemeName = "dark" | "light";
+export type ThemeName = "dark";
 
 export interface Theme {
   readonly name: ThemeName;
@@ -15,6 +15,9 @@ export interface Theme {
   readonly peakCore: string;
   readonly peakHalo: string;
   readonly cometHead: string;
+  readonly cometComaInner: string;
+  readonly cometComaOuter: string;
+  readonly cometTrail: string;
   readonly constellation: string;
   readonly label: string;
 }

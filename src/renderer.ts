@@ -13,10 +13,18 @@ const CELL_SIZE = 16;
 const PADDING = 10;
 const JITTER_AMP = 0.32;
 const LABEL_BAND = 18;
+const DAY_LABEL_WIDTH = 28;
 const GRID_WIDTH = GRID_COLS * CELL_SIZE;
 const GRID_HEIGHT = GRID_ROWS * CELL_SIZE;
-const SVG_WIDTH = GRID_WIDTH + 2 * PADDING;
+const GRID_X0 = DAY_LABEL_WIDTH + PADDING;
+const SVG_WIDTH = GRID_WIDTH + 2 * PADDING + DAY_LABEL_WIDTH;
 const SVG_HEIGHT = GRID_HEIGHT + 2 * PADDING + LABEL_BAND;
+
+const DAY_LABELS: ReadonlyArray<readonly [number, string]> = [
+  [0, "Mon"],
+  [2, "Wed"],
+  [4, "Fri"],
+];
 
 const COMET_TRAVERSAL_MS = 4800;
 const COMET_HOLD_MS = 3500;
@@ -27,7 +35,24 @@ const HALO_STAGGER_S = 0.6;
 
 const DEFAULT_SEED = 0x5eed;
 const BG_STAR_COUNT = 80;
-const COMET_HEAD_R = 4;
+const COMET_NUCLEUS_R = 2.2;
+const COMET_COMA_INNER_R = 5.5;
+const COMET_COMA_OUTER_R = 9;
+const COMET_COMA_INNER_OPACITY = 0.55;
+const COMET_COMA_OUTER_OPACITY = 0.28;
+
+interface TrailParticle {
+  readonly beginOffsetS: number;
+  readonly radius: number;
+  readonly opacity: number;
+}
+
+const COMET_TRAIL: readonly TrailParticle[] = [
+  { beginOffsetS: 0.18, radius: 1.8, opacity: 0.45 },
+  { beginOffsetS: 0.36, radius: 1.3, opacity: 0.28 },
+  { beginOffsetS: 0.54, radius: 0.9, opacity: 0.16 },
+  { beginOffsetS: 0.72, radius: 0.6, opacity: 0.08 },
+];
 
 const MONTHS = [
   "Jan",
@@ -138,7 +163,7 @@ function layout(
 
     const col = Math.floor(d.index / GRID_ROWS);
     const row = d.index % GRID_ROWS;
-    const cx = col * CELL_SIZE + CELL_SIZE / 2 + PADDING + jx;
+    const cx = GRID_X0 + col * CELL_SIZE + CELL_SIZE / 2 + jx;
     const cy =
       LABEL_BAND + row * CELL_SIZE + CELL_SIZE / 2 + PADDING + jy;
 
@@ -156,7 +181,7 @@ function renderBgStars(
   const rng = makePRNG(seed ^ 0xdeadbeef);
   let out = "";
   for (let i = 0; i < BG_STAR_COUNT; i++) {
-    const cx = rng() * GRID_WIDTH + PADDING;
+    const cx = rng() * GRID_WIDTH + GRID_X0;
     const cy = rng() * GRID_HEIGHT + PADDING + LABEL_BAND;
     const r = rng() * 1.5;
     const delay = rng() * TWINKLE_DURATION_S;
@@ -250,6 +275,7 @@ function renderPeak(
   const rayLen = 5.0 + (effective - 15) * 1.0;
   const diagLen = rayLen * 0.45;
   const diagOff = diagLen * 0.707;
+  const sphereR = haloR * 0.6;
   const rayFill = peakFill(d.count);
 
   let out = `<g transform="rotate(${d.angle.toFixed(1)} ${d.cx.toFixed(2)} ${d.cy.toFixed(2)})">`;
@@ -267,6 +293,13 @@ function renderPeak(
   } else {
     out += haloOpen + " />";
   }
+  out += `<circle${attrs([
+    ["cx", d.cx],
+    ["cy", d.cy],
+    ["r", sphereR],
+    ["fill", "hsla(50,100%,99%,0.75)"],
+    ["filter", "url(#organic-sphere)"],
+  ])} />`;
 
   out += `<line${attrs([
     ["x1", d.cx - diagOff],
@@ -316,6 +349,22 @@ function renderPeak(
   return out;
 }
 
+function renderDayLabels(theme: Theme): string {
+  let out = "";
+  for (const [row, label] of DAY_LABELS) {
+    const y = LABEL_BAND + PADDING + row * CELL_SIZE + CELL_SIZE / 2 + 3;
+    out += `<text${attrs([
+      ["x", DAY_LABEL_WIDTH - 6],
+      ["y", y],
+      ["font-family", "monospace"],
+      ["font-size", 10],
+      ["fill", theme.label],
+      ["text-anchor", "end"],
+    ])}>${label}</text>`;
+  }
+  return out;
+}
+
 function renderMonthLabels(
   days: readonly ContributionDay[],
   theme: Theme,
@@ -333,7 +382,7 @@ function renderMonthLabels(
     if (month === lastMonth) continue;
     lastMonth = month;
     const label = MONTHS[month] ?? "";
-    const x = col * CELL_SIZE + PADDING;
+    const x = GRID_X0 + col * CELL_SIZE;
     out += `<text${attrs([
       ["x", x],
       ["y", 12],
@@ -374,15 +423,54 @@ function renderComet(
   const opacityKeyTimes = `0;${travFrac.toFixed(4)};${(travFrac + 0.001).toFixed(4)};1`;
   const opacityValues = "1;1;0;0";
 
-  out += `<circle${attrs([
-    ["cx", start.cx],
-    ["cy", start.cy],
-    ["r", COMET_HEAD_R],
-    ["fill", theme.cometHead],
-  ])}>`;
-  out += `<animateMotion dur="${cycleS.toFixed(2)}s" repeatCount="indefinite" keyTimes="${motionKeyTimes}" keyPoints="${motionKeyPoints}" calcMode="linear" path="${pathD}" />`;
-  out += `<animate attributeName="opacity" dur="${cycleS.toFixed(2)}s" repeatCount="indefinite" keyTimes="${opacityKeyTimes}" values="${opacityValues}" />`;
-  out += "</circle>";
+  const emitCometLayer = (
+    radius: number,
+    fill: string,
+    baseOpacity: number,
+    beginOffsetS: number,
+  ): string => {
+    const begin = beginOffsetS > 0 ? `-${beginOffsetS.toFixed(2)}s` : "0s";
+    const opacityVals = `${baseOpacity};${baseOpacity};0;0`;
+    return (
+      `<circle${attrs([
+        ["cx", 0],
+        ["cy", 0],
+        ["r", radius],
+        ["fill", fill],
+        ["opacity", baseOpacity],
+      ])}>` +
+      `<animateMotion dur="${cycleS.toFixed(2)}s" begin="${begin}" repeatCount="indefinite" keyTimes="${motionKeyTimes}" keyPoints="${motionKeyPoints}" calcMode="linear" path="${pathD}" />` +
+      `<animate attributeName="opacity" dur="${cycleS.toFixed(2)}s" begin="${begin}" repeatCount="indefinite" keyTimes="${opacityKeyTimes}" values="${opacityVals}" />` +
+      "</circle>"
+    );
+  };
+
+  // Trail (rendered first so head/coma paint over it)
+  for (const particle of COMET_TRAIL) {
+    out += emitCometLayer(
+      particle.radius,
+      theme.cometTrail,
+      particle.opacity,
+      particle.beginOffsetS,
+    );
+  }
+
+  // Coma (outer halo then inner halo)
+  out += emitCometLayer(
+    COMET_COMA_OUTER_R,
+    theme.cometComaOuter,
+    COMET_COMA_OUTER_OPACITY,
+    0,
+  );
+  out += emitCometLayer(
+    COMET_COMA_INNER_R,
+    theme.cometComaInner,
+    COMET_COMA_INNER_OPACITY,
+    0,
+  );
+
+  // Nucleus (head)
+  out += emitCometLayer(COMET_NUCLEUS_R, theme.cometHead, 1, 0);
 
   return out;
 }
@@ -407,6 +495,8 @@ export function renderCometSVG(
     ["height", SVG_HEIGHT],
     ["fill", theme.background],
   ])} />`;
+  out += `<defs><filter id="organic-sphere" x="-80%" y="-80%" width="260%" height="260%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="1.4" /></filter></defs>`;
+  out += renderDayLabels(theme);
   out += renderMonthLabels(days, theme);
   out += renderBgStars(seed, theme, animated);
 

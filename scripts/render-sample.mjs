@@ -29,7 +29,7 @@ for (const name of selected) {
 }
 
 const { renderCometSVG } = await import(rendererPath);
-const { DARK_THEME, LIGHT_THEME } = await import(themesPath);
+const { DARK_THEME } = await import(themesPath);
 
 mkdirSync(outDir, { recursive: true });
 
@@ -37,16 +37,15 @@ for (const name of selected) {
   const days = JSON.parse(
     readFileSync(resolve(fixturesDir, `${name}.json`), "utf8"),
   );
-  for (const [themeName, theme] of [
-    ["dark", DARK_THEME],
-    ["light", LIGHT_THEME],
-  ]) {
-    for (const animated of [true, false]) {
-      const variant = animated ? "animated" : "reduced";
-      const svg = renderCometSVG(days, { theme, animated, seed: 42 });
-      const path = resolve(outDir, `${name}.${themeName}.${variant}.svg`);
-      writeFileSync(path, svg, "utf8");
-      console.log(`wrote ${path}`);
-    }
+  for (const animated of [true, false]) {
+    const variant = animated ? "animated" : "reduced";
+    const svg = renderCometSVG(days, {
+      theme: DARK_THEME,
+      animated,
+      seed: 42,
+    });
+    const path = resolve(outDir, `${name}.${variant}.svg`);
+    writeFileSync(path, svg, "utf8");
+    console.log(`wrote ${path}`);
   }
 }
