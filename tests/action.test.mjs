@@ -478,4 +478,26 @@ test("COMET_DRY_RUN=1 skips real exec and logs <token> literal, not real token",
     !joinedInfo.includes("test-token-abc"),
     "info output must NOT contain the real token value",
   );
+  // Codex P2 (PR #7 round 6): dry-run must NOT emit the unqualified
+  // "Pushed X to Y" success line — that would give a false success signal
+  // if COMET_DRY_RUN was accidentally set in a real workflow.
+  ok(
+    !/^Pushed [^[]/m.test(joinedInfo),
+    `dry-run must not log bare 'Pushed ...' success: ${joinedInfo}`,
+  );
+});
+
+test("live push emits 'Pushed X to <branch>' only after real exec", async () => {
+  setupEnv({ INPUT_REDUCED: "false", COMET_DRY_RUN: "0" });
+  await run();
+  strictEqual(
+    setFailedCalls.length,
+    0,
+    `setFailed: ${setFailedCalls.join("; ")}`,
+  );
+  const joinedInfo = infoCalls.join("\n");
+  ok(
+    /^Pushed .+ to comet-graph$/m.test(joinedInfo),
+    `real push must log success line, got info: ${joinedInfo}`,
+  );
 });

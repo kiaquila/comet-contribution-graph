@@ -123,8 +123,6 @@ export async function run(): Promise<void> {
     }
 
     await pushOrphan({ workdir, branch, token, repo, files });
-
-    _fns.info(`Pushed ${files.join(", ")} to ${branch}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     _fns.setFailed(msg);
@@ -154,6 +152,9 @@ async function pushOrphan(args: {
     );
     _fns.info(
       `  git push --force --quiet https://x-access-token:<token>@github.com/${args.repo}.git HEAD:refs/heads/${args.branch}`,
+    );
+    _fns.info(
+      `[dry-run] Would push ${args.files.join(", ")} to ${args.branch} (skipped)`,
     );
     return;
   }
@@ -187,6 +188,7 @@ async function pushOrphan(args: {
     ["push", "--force", "--quiet", url, `HEAD:refs/heads/${args.branch}`],
     opts,
   );
+  _fns.info(`Pushed ${args.files.join(", ")} to ${args.branch}`);
 }
 
 const entrypoint = process.argv[1];
