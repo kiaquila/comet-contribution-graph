@@ -246,6 +246,37 @@ test("branch with invalid chars → setFailed, no fetch issued", async () => {
   strictEqual(fetchCalled, false, "fetch must not be called on invalid branch");
 });
 
+// Codex P2 (PR #7): guard against branch names the charset regex accepts
+// but git-check-ref-format rejects (`foo..bar`, leading dash, trailing
+// slash, etc.) — these would reach `git checkout --orphan` and fail late
+// after fetch + render work is already done.
+for (const badBranch of [
+  "foo..bar",
+  "feature//nested",
+  "-leading-dash",
+  ".leading-dot",
+  "/leading-slash",
+  "trailing-dot.",
+  "trailing-slash/",
+  "my-branch.lock",
+]) {
+  test(`branch rejected by git rules: '${badBranch}' → setFailed before fetch`, async () => {
+    setupEnv({ INPUT_BRANCH: badBranch });
+    let fetchCalled = false;
+    globalThis.fetch = async () => {
+      fetchCalled = true;
+      return {};
+    };
+    await run();
+    ok(
+      setFailedCalls.some((m) => m.toLowerCase().includes("branch")),
+      `expected branch validation failure for '${badBranch}', got: ${setFailedCalls.join("; ")}`,
+    );
+    strictEqual(fetchCalled, false, "fetch must not be called");
+    strictEqual(execCalls.length, 0, "no git exec on invalid branch");
+  });
+}
+
 test("fetchContributions throws → setFailed propagates the thrown message", async () => {
   setupEnv();
   globalThis.fetch = async () => {

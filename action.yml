@@ -9,7 +9,7 @@ inputs:
     description: "GitHub login to render the graph for"
     required: true
   token:
-    description: "Token with read:user scope. Default uses the Action's built-in GITHUB_TOKEN."
+    description: "Token with 'contents:write' scope on the target repository (used to force-push the SVG branch). Default uses the Action's built-in GITHUB_TOKEN, which has contents:write on the current repo by default. For a cross-repo setup use a classic PAT with 'repo' scope or a fine-grained PAT with 'Contents: Read and write'."
     required: false
     default: ${{ github.token }}
   reduced:

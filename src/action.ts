@@ -9,7 +9,24 @@ import { renderCometSVG } from "./renderer.js";
 import { DARK_THEME } from "./themes.js";
 
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-const BRANCH_RE = /^[A-Za-z0-9._/-]{1,100}$/;
+const BRANCH_CHARSET_RE = /^[A-Za-z0-9._/-]{1,100}$/;
+
+// Subset of git-check-ref-format rules sufficient to reject the cases the
+// broad BRANCH_CHARSET_RE lets through: leading dash (ambiguous with flag),
+// leading/trailing slash, trailing dot, ".lock" suffix, consecutive dots
+// or slashes. Without this, an invalid branch reaches `git checkout
+// --orphan` and fails late after fetch/render work is already done.
+function isValidGitBranchName(name: string): boolean {
+  if (!BRANCH_CHARSET_RE.test(name)) return false;
+  if (name.startsWith("-") || name.startsWith(".") || name.startsWith("/")) {
+    return false;
+  }
+  if (name.endsWith(".") || name.endsWith("/") || name.endsWith(".lock")) {
+    return false;
+  }
+  if (name.includes("..") || name.includes("//")) return false;
+  return true;
+}
 
 // Mutable object so tests can replace individual properties without hitting
 // the ESM frozen-namespace restriction on `export let` live-binding assignment.
@@ -43,9 +60,9 @@ export async function run(): Promise<void> {
       return;
     }
 
-    if (!BRANCH_RE.test(branch)) {
+    if (!isValidGitBranchName(branch)) {
       _fns.setFailed(
-        `branch contains invalid characters: ${branch}. Must match /^[A-Za-z0-9._/-]{1,100}$/`,
+        `branch is not a valid git branch name: ${branch}. Must satisfy git-check-ref-format rules (no leading '-', '.', '/'; no trailing '.', '/', '.lock'; no '..' or '//'; charset [A-Za-z0-9._/-] length 1-100).`,
       );
       return;
     }
