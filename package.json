@@ -6,25 +6,29 @@
   "scripts": {
     "agent:set": "node scripts/set-implementation-agent.mjs",
     "build": "node scripts/build-static.mjs",
+    "build:renderer": "tsc",
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
     "check:html": "html-validate prototypes/variant-d-grid-peaks.html",
     "check:js": "eslint \"prototypes/**/*.html\"",
+    "check:ts": "tsc --noEmit",
     "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\"",
-    "test": "node --test \"tests/**/*.test.mjs\"",
-    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run build && pnpm run format:check && pnpm run test",
+    "test": "pnpm run build:renderer && node --test \"tests/**/*.test.mjs\"",
+    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run check:ts && pnpm run build && pnpm run format:check && pnpm run test",
     "pr:publish": "node scripts/publish-branch.mjs",
     "review:switch": "node scripts/switch-review-agent.mjs",
     "worker:start": "node scripts/start-implementation-worker.mjs",
     "worktree:new": "node scripts/new-worktree.mjs"
   },
   "devDependencies": {
+    "@types/node": "^20.19.39",
     "eslint": "^9",
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^57",
     "globals": "^16",
     "html-validate": "^10.11.3",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {
