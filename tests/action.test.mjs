@@ -259,6 +259,9 @@ for (const badBranch of [
   "trailing-dot.",
   "trailing-slash/",
   "my-branch.lock",
+  "foo/.bar",
+  "foo/bar.lock/baz",
+  "foo/@{squish}",
 ]) {
   test(`branch rejected by git rules: '${badBranch}' → setFailed before fetch`, async () => {
     setupEnv({ INPUT_BRANCH: badBranch });

@@ -11,20 +11,26 @@ import { DARK_THEME } from "./themes.js";
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const BRANCH_CHARSET_RE = /^[A-Za-z0-9._/-]{1,100}$/;
 
-// Subset of git-check-ref-format rules sufficient to reject the cases the
-// broad BRANCH_CHARSET_RE lets through: leading dash (ambiguous with flag),
-// leading/trailing slash, trailing dot, ".lock" suffix, consecutive dots
-// or slashes. Without this, an invalid branch reaches `git checkout
-// --orphan` and fails late after fetch/render work is already done.
+// Subset of git-check-ref-format --branch sufficient to reject inputs the
+// broad BRANCH_CHARSET_RE lets through. Rules are applied per slash-
+// delimited segment (git refs are path-like): `foo/.bar` and
+// `foo/bar.lock/baz` are invalid even though the full string looks fine.
+// Without this, an invalid branch reaches `git checkout --orphan` and
+// fails late after fetch/render work is already done.
 function isValidGitBranchName(name: string): boolean {
   if (!BRANCH_CHARSET_RE.test(name)) return false;
-  if (name.startsWith("-") || name.startsWith(".") || name.startsWith("/")) {
+  if (name === "@") return false;
+  if (name.startsWith("-")) return false; // ambiguous with a CLI flag
+  if (name.startsWith("/") || name.endsWith("/")) return false;
+  if (name.endsWith(".")) return false;
+  if (name.includes("..") || name.includes("//") || name.includes("@{")) {
     return false;
   }
-  if (name.endsWith(".") || name.endsWith("/") || name.endsWith(".lock")) {
-    return false;
+  for (const segment of name.split("/")) {
+    if (segment.length === 0) return false;
+    if (segment.startsWith(".")) return false;
+    if (segment.endsWith(".lock")) return false;
   }
-  if (name.includes("..") || name.includes("//")) return false;
   return true;
 }
 
