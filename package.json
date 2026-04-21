@@ -6,23 +6,30 @@
   "scripts": {
     "agent:set": "node scripts/set-implementation-agent.mjs",
     "build": "node scripts/build-static.mjs",
+    "build:action": "ncc build src/action.ts -o dist-action --minify --license licenses.txt",
     "build:renderer": "tsc",
+    "check:dist": "pnpm run build:action && git diff --exit-code dist-action",
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
     "check:repo": "node scripts/check-static-baseline.mjs",
     "fetch:sample": "node scripts/fetch-contributions.mjs",
     "check:html": "html-validate prototypes/variant-d-grid-peaks.html",
     "check:js": "eslint \"prototypes/**/*.html\"",
     "check:ts": "tsc --noEmit",
-    "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\"",
+    "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\" \"action.yml\"",
     "test": "pnpm run build:renderer && node --test \"tests/**/*.test.mjs\"",
-    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run check:ts && pnpm run build && pnpm run format:check && pnpm run test",
+    "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run check:ts && pnpm run build && pnpm run build:action && pnpm run check:dist && pnpm run format:check && pnpm run test",
     "pr:publish": "node scripts/publish-branch.mjs",
     "review:switch": "node scripts/switch-review-agent.mjs",
     "worker:start": "node scripts/start-implementation-worker.mjs",
     "worktree:new": "node scripts/new-worktree.mjs"
   },
+  "dependencies": {
+    "@actions/core": "^1.11.0",
+    "@actions/exec": "^1.1.1"
+  },
   "devDependencies": {
     "@types/node": "^20.19.39",
+    "@vercel/ncc": "^0.38.0",
     "eslint": "^9",
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^57",
