@@ -21,9 +21,9 @@ const SVG_WIDTH = GRID_WIDTH + 2 * PADDING + DAY_LABEL_WIDTH;
 const SVG_HEIGHT = GRID_HEIGHT + 2 * PADDING + LABEL_BAND;
 
 const DAY_LABELS: ReadonlyArray<readonly [number, string]> = [
-  [0, "Mon"],
-  [2, "Wed"],
-  [4, "Fri"],
+  [1, "Mon"],
+  [3, "Wed"],
+  [5, "Fri"],
 ];
 
 const COMET_TRAVERSAL_MS = 4800;

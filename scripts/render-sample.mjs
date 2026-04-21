@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,15 @@ for (const name of selected) {
     console.error(`available: ${FIXTURES.join(", ")}`);
     process.exit(1);
   }
+}
+
+const build = spawnSync("pnpm", ["run", "build:renderer"], {
+  cwd: root,
+  stdio: "inherit",
+});
+if (build.status !== 0) {
+  console.error("render-sample: build:renderer failed; cannot import dist.");
+  process.exit(1);
 }
 
 const { renderCometSVG } = await import(rendererPath);
