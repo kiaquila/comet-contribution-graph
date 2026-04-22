@@ -46,7 +46,7 @@ Publish a public GitHub Action that any developer installs in their profile repo
 
 ### Forward-referencing specs
 
-Specs for PR 003/004/005 are intentionally NOT written yet. Their scope will be refined by what we learn shipping PR 002 (actual SMIL behavior through camo, snapshot testing ergonomics, TS build quirks). Writing them now would be premature — they would rot before execution. Create each spec when its PR begins.
+Specs for PR 002–005 were written just-in-time at the start of each PR rather than up-front, so each scope reflected what we learned shipping earlier PRs. All four are now committed under `specs/`.
 
 ## Near-term follow-ups (post-PR-005)
 
