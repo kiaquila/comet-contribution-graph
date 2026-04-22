@@ -58,12 +58,12 @@ For users who prefer reduced motion, serve the static companion SVG via a `<pict
 
 ### Inputs
 
-| name       | required | default               | description                                                                                         |
-| ---------- | -------- | --------------------- | --------------------------------------------------------------------------------------------------- |
-| `username` | yes      | —                     | GitHub login to render the graph for                                                                |
-| `token`    | no       | `${{ github.token }}` | PAT with `read:user` + repo write access for cross-repo setups; default works for owner's own graph |
-| `reduced`  | no       | `"true"`              | Also emit `comet-reduced.svg` for `prefers-reduced-motion` fallback                                 |
-| `branch`   | no       | `"comet-graph"`       | Output branch; force-pushed on every run                                                            |
+| name       | required | default               | description                                                                                                                                              |
+| ---------- | -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `username` | yes      | —                     | GitHub login to render the graph for                                                                                                                     |
+| `token`    | no       | `${{ github.token }}` | Token with `contents:write` on the target repo; for cross-repo use a classic PAT with `repo` scope or a fine-grained PAT with `Contents: Read and write` |
+| `reduced`  | no       | `"true"`              | Also emit `comet-reduced.svg` for `prefers-reduced-motion` fallback                                                                                      |
+| `branch`   | no       | `"comet-graph"`       | Output branch; force-pushed on every run                                                                                                                 |
 
 ## How it works
 
