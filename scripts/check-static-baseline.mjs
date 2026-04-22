@@ -35,6 +35,7 @@ const requiredFiles = [
   ".github/workflows/ai-review.yml",
   ".github/workflows/ai-command-policy.yml",
   ".github/workflows/osv-scan.yml",
+  ".github/workflows/comet-graph.yml",
   ".github/dependabot.yml",
   "action.yml",
   ".gitattributes",
