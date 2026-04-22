@@ -12,8 +12,8 @@ Publish a public GitHub Action that any developer installs in their profile repo
 - CI infra (ESLint, html-validate, feature-memory gate, Playwright smoke, Codex review) — green (PR #4 merged).
 - PR 002 — renderer extraction — merged. Pure-TS SVG renderer, SMIL animation, snapshot tests.
 - PR 003 — data layer — merged. GraphQL `contributionsCollection` fetcher + parser, 43 tests.
-- **PR 004 — Action entrypoint — in review.** `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push. All local checks green.
-- PR 005 — not started; spec not yet written (see "Forward-referencing specs" below).
+- **PR 004 — Action entrypoint — MERGED (squash `7225f17`).** `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push. All local checks green.
+- PR 005 — dogfood workflow + README publish — in review.
 
 ### Closed-in-PR-002 scope
 
@@ -35,18 +35,22 @@ Publish a public GitHub Action that any developer installs in their profile repo
 
 ## 4-PR roadmap to MVP
 
-| #   | Spec                                                                      | Size | What lands                                                                                                                                                                                           |
-| --- | ------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 002 | [specs/002-renderer-extraction/](../../../specs/002-renderer-extraction/) | L    | Pure TS SVG renderer (`src/renderer.ts`, `normalize.ts`, `themes.ts`, `prng.ts`), TypeScript toolchain, SMIL animation migration, snapshot tests against fixture profiles. Prototype untouched.      |
-| 003 | `specs/003-data-layer/` (created when PR 002 merges)                      | M    | `src/data.ts` — GraphQL `contributionsCollection` fetcher + parser, fixture JSON files, CLI `scripts/fetch-contributions.mjs` for manual real-data verification.                                     |
-| 004 | [specs/004-action-entrypoint/](../../../specs/004-action-entrypoint/)     | L    | `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push to `comet-graph` branch. CI "dist up-to-date" check. `.gitattributes linguist-generated`. **In review.** |
-| 005 | `specs/005-dogfood/` (created when PR 004 merges)                         | S    | `.github/workflows/comet-graph.yml` (weekly cron + `workflow_dispatch`), README overhaul with `<img>` embed (optional `<picture>` for reduced-motion fallback), usage docs for external users.       |
+| #   | Spec                                                                      | Size | What lands                                                                                                                                                                                                       |
+| --- | ------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 002 | [specs/002-renderer-extraction/](../../../specs/002-renderer-extraction/) | L    | Pure TS SVG renderer (`src/renderer.ts`, `normalize.ts`, `themes.ts`, `prng.ts`), TypeScript toolchain, SMIL animation migration, snapshot tests against fixture profiles. Prototype untouched. ✅ MERGED        |
+| 003 | `specs/003-data-layer/` (created when PR 002 merges)                      | M    | `src/data.ts` — GraphQL `contributionsCollection` fetcher + parser, fixture JSON files, CLI `scripts/fetch-contributions.mjs` for manual real-data verification. ✅ MERGED                                       |
+| 004 | [specs/004-action-entrypoint/](../../../specs/004-action-entrypoint/)     | L    | `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push to `comet-graph` branch. CI "dist up-to-date" check. `.gitattributes linguist-generated`. **✅ MERGED.**             |
+| 005 | `specs/005-dogfood/` (created when PR 004 merges)                         | S    | `.github/workflows/comet-graph.yml` (weekly cron + `workflow_dispatch`), README overhaul with `<img>` embed (optional `<picture>` for reduced-motion fallback), usage docs for external users. 🚧 **In review.** |
 
 **Why 4 PRs, not 3 or 5.** Three would combine TypeScript toolchain, rendering, GraphQL, and normalization in one PR — too broad for Codex review (historical data: 6 cycles on L-size PRs). Five would split normalization away from its only consumer (the renderer), violating the CLAUDE.md "no abstractions for single-use" rule.
 
 ### Forward-referencing specs
 
 Specs for PR 003/004/005 are intentionally NOT written yet. Their scope will be refined by what we learn shipping PR 002 (actual SMIL behavior through camo, snapshot testing ergonomics, TS build quirks). Writing them now would be premature — they would rot before execution. Create each spec when its PR begins.
+
+## Near-term follow-ups (post-PR-005)
+
+- **PR 006 — profile-repo dogfood (Option B of Option C strategy).** Install the Action in `kiaquila/kiaquila` profile repo via `uses: kiaquila/comet-contribution-graph@main`; push SVG to the profile repo's own `comet-graph` branch using that repo's default `${{ github.token }}` (no PAT required for self-deploy). Embed `comet.svg` at the top of the profile README so the comet graph appears on the GitHub profile page. Coexists with Option A: A is automated regression (weekly cron in source repo); B is public showcase.
 
 ## Fixed design decisions (user-approved 2026-04-20)
 
