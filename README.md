@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: kiaquila/comet-contribution-graph@main
         with:
           username: <user>

@@ -88,7 +88,7 @@ GitHub GraphQL API: `user(login: $login) { contributionsCollection { contributio
 
 ### Rendering
 
-Pure TypeScript in `src/renderer.ts` → SVG string. No DOM, no `document`, no `requestAnimationFrame`, no `canvas`. Runs on Node 20 stdlib only. Deterministic for a given `(data, options, seed)` tuple.
+Pure TypeScript in `src/renderer.ts` → SVG string. No DOM, no `document`, no `requestAnimationFrame`, no `canvas`. Runs on Node 24 stdlib only. Deterministic for a given `(data, options, seed)` tuple.
 
 ### Animation
 
