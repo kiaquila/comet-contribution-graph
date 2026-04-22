@@ -58,16 +58,16 @@ For users who prefer reduced motion, serve the static companion SVG via a `<pict
 
 ### Inputs
 
-| name       | required | default               | description                                                                             |
-| ---------- | -------- | --------------------- | --------------------------------------------------------------------------------------- |
-| `username` | yes      | —                     | GitHub login to render the graph for                                                    |
-| `token`    | no       | `${{ github.token }}` | PAT with `read:user` only if querying another user; default works for owner's own graph |
-| `reduced`  | no       | `"true"`              | Also emit `comet-reduced.svg` for `prefers-reduced-motion` fallback                     |
-| `branch`   | no       | `"comet-graph"`       | Output branch; force-pushed on every run                                                |
+| name       | required | default               | description                                                                                         |
+| ---------- | -------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| `username` | yes      | —                     | GitHub login to render the graph for                                                                |
+| `token`    | no       | `${{ github.token }}` | PAT with `read:user` + repo write access for cross-repo setups; default works for owner's own graph |
+| `reduced`  | no       | `"true"`              | Also emit `comet-reduced.svg` for `prefers-reduced-motion` fallback                                 |
+| `branch`   | no       | `"comet-graph"`       | Output branch; force-pushed on every run                                                            |
 
 ## How it works
 
-Every run fetches your GitHub contributions via the GraphQL API, passes them through a pure-TS SVG renderer (SMIL-animated comet tracing your most productive days across a constellation of your year), and force-pushes the result to an orphan `comet-graph` branch in this repo. Your profile README embeds the SVG via a stable `raw.githubusercontent.com` URL. See [github-action-target.md](./docs_comet/project/devops/github-action-target.md) for the architecture contract.
+Every run fetches your GitHub contributions via the GraphQL API, passes them through a pure-TS SVG renderer (SMIL-animated comet tracing your most productive days across a constellation of your year), and force-pushes the result to an orphan `comet-graph` branch in the repository where the workflow runs. Your profile README embeds the SVG via a stable `raw.githubusercontent.com` URL. See [github-action-target.md](./docs_comet/project/devops/github-action-target.md) for the architecture contract.
 
 ## Concept
 
