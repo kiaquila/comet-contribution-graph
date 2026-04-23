@@ -11,7 +11,6 @@ const GRID_COLS = 53;
 const GRID_ROWS = 7;
 const CELL_SIZE = 16;
 const PADDING = 10;
-const JITTER_AMP = 0.32;
 const LABEL_BAND = 18;
 const DAY_LABEL_WIDTH = 28;
 const GRID_WIDTH = GRID_COLS * CELL_SIZE;
@@ -34,12 +33,32 @@ const HALO_DURATION_S = 3;
 const HALO_STAGGER_S = 0.6;
 
 const DEFAULT_SEED = 0x5eed;
-const BG_STAR_COUNT = 80;
 const COMET_NUCLEUS_R = 2.2;
 const COMET_COMA_INNER_R = 5.5;
 const COMET_COMA_OUTER_R = 9;
 const COMET_COMA_INNER_OPACITY = 0.55;
 const COMET_COMA_OUTER_OPACITY = 0.28;
+
+// 5-bucket cell placement: 4 corners + center (weights 0.22/0.22/0.22/0.22/0.12).
+// Replaces the old continuous ±0.32 * CELL_SIZE jitter.
+const CORNER_OFFSET_PX = 4.0;
+const CORNER_DITHER_PX = 1.2;
+const BUCKET_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [-CORNER_OFFSET_PX, -CORNER_OFFSET_PX],
+  [+CORNER_OFFSET_PX, -CORNER_OFFSET_PX],
+  [-CORNER_OFFSET_PX, +CORNER_OFFSET_PX],
+  [+CORNER_OFFSET_PX, +CORNER_OFFSET_PX],
+  [0, 0],
+];
+const BUCKET_WEIGHTS: readonly number[] = [0.22, 0.22, 0.22, 0.22, 0.12];
+
+// Background star scaling by density regime d ∈ [0.05, 1]
+const BG_TIER_COUNTS: ReadonlyArray<readonly [number, number, number]> = [
+  // [dMax, count, staticOpacity]
+  [0.15, 50, 0.12],
+  [0.45, 65, 0.15],
+  [Infinity, 80, 0.18],
+];
 
 interface TrailParticle {
   readonly beginOffsetS: number;
@@ -69,12 +88,9 @@ const MONTHS = [
   "Dec",
 ] as const;
 
-type StarShape = "circle" | "spike";
-
 interface PlacedDay extends NormalizedDay {
   readonly cx: number;
   readonly cy: number;
-  readonly shape: StarShape;
   readonly angle: number;
 }
 
@@ -99,21 +115,46 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function nonPeakRadius(intensity: number, densityFactor: number): number {
-  const rMin = lerp(1.2, 0.7, densityFactor);
-  const rMax = lerp(2.2, 1.8, densityFactor);
-  return rMin + Math.sqrt(intensity) * (rMax - rMin);
+// Core + halo geometry for non-peak stars.
+// Both ceilings grow with density regime d so large accounts look richer
+// at the top end. Floors are density-independent to guarantee small-account
+// visibility (invariants 1 and 6 in specs/008-adaptive-star-rendering/spec.md).
+const CORE_R_FLOOR = 0.8;
+const HALO_R_FLOOR = 1.5;
+const CORE_OP_FLOOR = 0.5;
+const HALO_OP_FLOOR = 0.12;
+
+function coreRadius(t: number, d: number): number {
+  const ceil = lerp(1.8, 2.4, d);
+  return CORE_R_FLOOR + Math.sqrt(t) * (ceil - CORE_R_FLOOR);
 }
 
-function nonPeakFill(intensity: number, hue: number): string {
-  const s = lerp(42, 72, intensity);
-  const l = lerp(28, 82, intensity);
-  return `hsl(${hue},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
+function coreOpacity(t: number, d: number): number {
+  const ceil = lerp(0.82, 0.92, d);
+  return CORE_OP_FLOOR + Math.sqrt(t) * (ceil - CORE_OP_FLOOR);
 }
 
-function nonPeakOpacity(intensity: number, densityFactor: number): number {
-  const opacityFloor = lerp(0.55, 0.35, densityFactor);
-  return opacityFloor + Math.sqrt(intensity) * 0.3;
+function haloRadius(t: number, d: number): number {
+  const ceil = lerp(2.8, 3.6, d);
+  return HALO_R_FLOOR + Math.sqrt(t) * (ceil - HALO_R_FLOOR);
+}
+
+function haloOpacity(t: number, d: number): number {
+  const ceil = lerp(0.22, 0.30, d);
+  return HALO_OP_FLOOR + Math.sqrt(t) * (ceil - HALO_OP_FLOOR);
+}
+
+function coreFill(t: number, hue: number): string {
+  const hueAdj = t >= 0.7 ? hue - ((t - 0.7) / 0.3) * 14 : hue;
+  const s = lerp(50, 82, t);
+  const l = lerp(38, 88, t);
+  return `hsl(${hueAdj.toFixed(1)},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
+}
+
+function haloFill(t: number, hue: number): string {
+  const s = lerp(30, 55, t);
+  const l = lerp(40, 70, t);
+  return `hsl(${hue.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
 }
 
 function peakFill(count: number): string {
@@ -132,6 +173,24 @@ function pickTint(tints: readonly string[], roll: number): string {
   return tints[4] ?? fallback;
 }
 
+function pickBucket(roll: number): readonly [number, number] {
+  let acc = 0;
+  for (let i = 0; i < BUCKET_WEIGHTS.length; i++) {
+    acc += BUCKET_WEIGHTS[i] ?? 0;
+    if (roll < acc) {
+      return BUCKET_OFFSETS[i] ?? [0, 0];
+    }
+  }
+  return BUCKET_OFFSETS[BUCKET_OFFSETS.length - 1] ?? [0, 0];
+}
+
+function bgTier(d: number): { count: number; staticOpacity: number } {
+  for (const [dMax, count, staticOpacity] of BG_TIER_COUNTS) {
+    if (d < dMax) return { count, staticOpacity };
+  }
+  return { count: 80, staticOpacity: 0.18 };
+}
+
 function layout(
   days: readonly NormalizedDay[],
   seed: number,
@@ -140,44 +199,36 @@ function layout(
   const placed: PlacedDay[] = [];
 
   for (const d of days) {
-    rng(); // reserve aesthetic slot to keep PRNG stream stable with prototype
-    const jx = (rng() * 2 - 1) * JITTER_AMP * CELL_SIZE;
-    const jy = (rng() * 2 - 1) * JITTER_AMP * CELL_SIZE;
-
-    let shape: StarShape;
-    let angle = 0;
-
-    if (d.isPeak) {
-      rng();
-      shape = "spike";
-    } else if (d.intensity >= 0.55) {
-      shape = rng() < 0.3 ? "spike" : "circle";
-    } else {
-      rng();
-      shape = "circle";
-    }
-
-    if (shape === "spike") {
-      angle = (rng() * 2 - 1) * 45;
-    } else {
-      rng();
-    }
+    // 3 PRNG calls per day: bucket selection + x dither + y dither.
+    const [bx, by] = pickBucket(rng());
+    const dx = (rng() * 2 - 1) * CORNER_DITHER_PX;
+    const dy = (rng() * 2 - 1) * CORNER_DITHER_PX;
 
     const col = Math.floor(d.index / GRID_ROWS);
     const row = d.index % GRID_ROWS;
-    const cx = GRID_X0 + col * CELL_SIZE + CELL_SIZE / 2 + jx;
-    const cy = LABEL_BAND + row * CELL_SIZE + CELL_SIZE / 2 + PADDING + jy;
+    const cx = GRID_X0 + col * CELL_SIZE + CELL_SIZE / 2 + bx + dx;
+    const cy = LABEL_BAND + row * CELL_SIZE + CELL_SIZE / 2 + PADDING + by + dy;
 
-    placed.push({ ...d, cx, cy, shape, angle });
+    // Peaks still carry a rotation angle for the ray cross; derive it deterministically
+    // from (cx, cy) without consuming extra PRNG calls.
+    const angle = d.isPeak ? ((cx + cy) % 90) - 45 : 0;
+
+    placed.push({ ...d, cx, cy, angle });
   }
 
   return placed;
 }
 
-function renderBgStars(seed: number, theme: Theme, animated: boolean): string {
+function renderBgStars(
+  seed: number,
+  theme: Theme,
+  animated: boolean,
+  d: number,
+): string {
+  const { count, staticOpacity } = bgTier(d);
   const rng = makePRNG(seed ^ 0xdeadbeef);
   let out = "";
-  for (let i = 0; i < BG_STAR_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const cx = rng() * GRID_WIDTH + GRID_X0;
     const cy = rng() * GRID_HEIGHT + PADDING + LABEL_BAND;
     const r = rng() * 1.5;
@@ -188,7 +239,7 @@ function renderBgStars(seed: number, theme: Theme, animated: boolean): string {
       ["cy", cy],
       ["r", r],
       ["fill", fill],
-      ["opacity", animated ? 0.05 : 0.18],
+      ["opacity", animated ? 0.05 : staticOpacity],
     ])}`;
     if (animated) {
       out +=
@@ -201,62 +252,28 @@ function renderBgStars(seed: number, theme: Theme, animated: boolean): string {
   return out;
 }
 
-function renderStar(d: PlacedDay, theme: Theme, densityFactor: number): string {
-  const r = nonPeakRadius(d.intensity, densityFactor);
-  const fill = nonPeakFill(d.intensity, theme.dataStarHue);
-  const opacity = nonPeakOpacity(d.intensity, densityFactor);
+function renderStar(d: PlacedDay, theme: Theme, regime: number): string {
+  const t = d.intensity;
+  const haloR = haloRadius(t, regime);
+  const haloOp = haloOpacity(t, regime);
+  const coreR = coreRadius(t, regime);
+  const coreOp = coreOpacity(t, regime);
+  const hue = theme.dataStarHue;
+
   let out = `<circle${attrs([
     ["cx", d.cx],
     ["cy", d.cy],
-    ["r", r],
-    ["fill", fill],
-    ["opacity", opacity],
+    ["r", haloR],
+    ["fill", haloFill(t, hue)],
+    ["opacity", haloOp],
   ])} />`;
-  if (d.shape !== "spike") return out;
-
-  const armLen = r * 2.8;
-  const diagLen = armLen * 0.45;
-  const diagOff = diagLen * 0.707;
-  out += `<g transform="rotate(${d.angle.toFixed(1)} ${d.cx.toFixed(2)} ${d.cy.toFixed(2)})">`;
-  out += `<line${attrs([
-    ["x1", d.cx - armLen],
-    ["y1", d.cy],
-    ["x2", d.cx + armLen],
-    ["y2", d.cy],
-    ["stroke", fill],
-    ["stroke-width", 0.6],
-    ["opacity", opacity],
+  out += `<circle${attrs([
+    ["cx", d.cx],
+    ["cy", d.cy],
+    ["r", coreR],
+    ["fill", coreFill(t, hue)],
+    ["opacity", coreOp],
   ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx],
-    ["y1", d.cy - armLen],
-    ["x2", d.cx],
-    ["y2", d.cy + armLen],
-    ["stroke", fill],
-    ["stroke-width", 0.6],
-    ["opacity", opacity],
-  ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx - diagOff],
-    ["y1", d.cy - diagOff],
-    ["x2", d.cx + diagOff],
-    ["y2", d.cy + diagOff],
-    ["stroke", fill],
-    ["stroke-width", 0.4],
-    ["stroke-opacity", 0.3],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx - diagOff],
-    ["y1", d.cy + diagOff],
-    ["x2", d.cx + diagOff],
-    ["y2", d.cy - diagOff],
-    ["stroke", fill],
-    ["stroke-width", 0.4],
-    ["stroke-opacity", 0.3],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += "</g>";
   return out;
 }
 
@@ -427,7 +444,6 @@ function renderComet(
   const motionKeyTimes = `0;${travFrac.toFixed(4)};1`;
   const motionKeyPoints = "0;1;1";
   const opacityKeyTimes = `0;${travFrac.toFixed(4)};${(travFrac + 0.001).toFixed(4)};1`;
-  const opacityValues = "1;1;0;0";
 
   const emitCometLayer = (
     radius: number,
@@ -488,8 +504,7 @@ export function renderCometSVG(
   const { theme, animated } = options;
   const seed = options.seed ?? DEFAULT_SEED;
 
-  const { days: normDays, peaks, activeDays } = normalize(days);
-  const densityFactor = Math.max(0.15, Math.min(1.0, activeDays / 365));
+  const { days: normDays, peaks, densityRegime } = normalize(days);
   const placed = layout(normDays, seed);
   const placedPeaks = placed.filter((d) => d.isPeak);
   const hasPeaks = peaks.length > 0;
@@ -505,12 +520,12 @@ export function renderCometSVG(
   out += `<defs><filter id="organic-sphere" x="-80%" y="-80%" width="260%" height="260%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="1.4" /></filter></defs>`;
   out += renderDayLabels(theme);
   out += renderMonthLabels(days, theme);
-  out += renderBgStars(seed, theme, animated);
+  out += renderBgStars(seed, theme, animated, densityRegime);
 
   for (const d of placed) {
     if (!d.isActive) continue;
     if (d.isPeak) continue;
-    out += renderStar(d, theme, densityFactor);
+    out += renderStar(d, theme, densityRegime);
   }
 
   if (hasPeaks && placedPeaks.length >= 2) {

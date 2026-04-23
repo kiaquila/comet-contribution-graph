@@ -40,6 +40,9 @@ const FIXTURES = [
   "sparse-user",
   "normal-user",
   "heavy-user",
+  "kiaquila",
+  "staks-sor",
+  "yeachan-heo",
 ];
 
 for (const fixture of FIXTURES) {
