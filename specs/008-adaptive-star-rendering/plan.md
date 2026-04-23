@@ -21,6 +21,7 @@ Handle (A) + (B) as one executor pass. Handle (C) via committed `samples/*.svg` 
 ## Key implementation decisions (locked)
 
 **Density regime `d`** (new, computed in `normalize.ts`):
+
 ```
 mean     = sum(activeCounts) / activeCount
 variance = sum((c - mean)^2) / activeCount
@@ -30,15 +31,19 @@ rawCov   = activeCount / totalDays
 cvTerm   = min(cv / 4, 1)
 d        = clamp(0.6 * rawCov + 0.4 * cvTerm, 0.05, 1.0)
 ```
+
 Exposed via `Normalization.densityRegime`. `renderer.ts` consumes it directly (replaces the current `activeDays / 365` computation).
 
 **Non-peak intensity** (replaces `count / maxActive`):
+
 ```
 intensity = maxNonPeak > 0 ? log(1 + count) / log(1 + maxNonPeak) : 0
 ```
+
 `maxNonPeak` = max count among active days that are NOT in the peak set. Exposed via `Normalization.maxNonPeak` (new field) so the renderer can also read it if needed.
 
 **Halo+core geometry** (replaces `nonPeakRadius` / `nonPeakOpacity` / spike-arms):
+
 ```
 t = intensity
 d = densityRegime
@@ -48,17 +53,21 @@ coreOp  = max(0.5, lerp(0.55, 0.38, d) + t * lerp(0.38, 0.28, d))
 haloR   = max(1.5, (1.8 + 2.8*t) * lerp(1.0, 0.82, d))   // always present
 haloOp  = lerp(0.12, 0.08, d) + t * lerp(0.32, 0.22, d)
 ```
+
 Fills: `hsl(hue, lerp(50,82,t)%, lerp(38,88,t)%)` for core, `hsl(hue, lerp(30,55,t)%, lerp(40,70,t)%)` for halo. Hue = `dataStarHue` (214) for t<0.7; for t≥0.7 shift `hue = 214 - (t-0.7)/0.3 * 14` toward 200 (warmer blue-cyan on brightest non-peaks; never leaves blue family).
 
 **Jitter (5-bucket)**:
+
 ```
 CORNER_OFFSET_PX = 4.0
 CORNER_DITHER_PX = 1.2
 weights = [0.22, 0.22, 0.22, 0.22, 0.12]  // TL, TR, BL, BR, center
 ```
+
 Bucket selection: one `rng()` call, cumulative-weight lookup. Then two more `rng()` calls for ±dither. Retain PRNG parity with the prior stream by maintaining a 3-call budget per star (old: 1 aesthetic + 2 jitter = 3; new: 1 bucket + 2 dither = 3). No anti-collision rule in v1.2 — adds complexity for marginal visual gain; revisit if reviewers flag clustering.
 
 **Background stars scaling**:
+
 ```
 bgCount = d < 0.15 ? 50 : d < 0.45 ? 65 : 80
 bgOpacityBase = d < 0.15 ? 0.12 : d < 0.45 ? 0.15 : 0.18

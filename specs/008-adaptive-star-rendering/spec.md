@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make non-peak stars expressive across the full distribution of a GitHub year, not just peaks. Every active day must render with a visual weight proportional to that day's significance *within the author's own distribution*, using a halo-plus-core layered star and a density regime derived from distribution shape (coverage + tail-heaviness), not just active-day count. Ship as v1.2.
+Make non-peak stars expressive across the full distribution of a GitHub year, not just peaks. Every active day must render with a visual weight proportional to that day's significance _within the author's own distribution_, using a halo-plus-core layered star and a density regime derived from distribution shape (coverage + tail-heaviness), not just active-day count. Ship as v1.2.
 
 ## Why
 
@@ -11,7 +11,7 @@ v1.1 shipped (2026-04-23) and the widget rendered all non-peak days, but the mid
 > "все еще граф не показателен вне пиковых значений"
 > "на маленьких аккаунтах все контрибы на звездном небе видны, на средних все или почти все, на крупных аккаунтах отбрасывается кака-то несущественная по остальным меркам часть в целях нормализации, но крупный аккаунт все еще будет демонстрировать более яркое и насыщенное звездами небо"
 
-Three benchmark accounts were designated by the user for before/after comparison: [kiaquila](https://github.com/kiaquila) (small, 27/369 active days), [Staks-sor](https://github.com/Staks-sor) (medium, 67/369), [Yeachan-Heo](https://github.com/Yeachan-Heo) (large, 115/369, max=542). None of the three exceeds the user's mental "⅓ of year" normalization threshold — the practical shift from sparse-flat to dense-heavy-tailed happens earlier, around coverage ~25–30% *combined* with high CV.
+Three benchmark accounts were designated by the user for before/after comparison: [kiaquila](https://github.com/kiaquila) (small, 27/369 active days), [Staks-sor](https://github.com/Staks-sor) (medium, 67/369), [Yeachan-Heo](https://github.com/Yeachan-Heo) (large, 115/369, max=542). None of the three exceeds the user's mental "⅓ of year" normalization threshold — the practical shift from sparse-flat to dense-heavy-tailed happens earlier, around coverage ~25–30% _combined_ with high CV.
 
 ## Scope
 
@@ -59,17 +59,19 @@ Three benchmark accounts were designated by the user for before/after comparison
 6. Halo presence: every active non-peak day emits a halo (100% coverage, enforced by the "halo always" product decision).
 
 **Visual review (manual, blocking merge):**
+
 - `specs/008-adaptive-star-rendering/samples/{kiaquila,staks-sor,yeachan-heo}.svg` — three standalone files the user opens in a browser. Each must match the regime description in the synthesis (sparse/precious, legible hierarchy, dense luminous cloud).
 
 **CI (gates):**
+
 - `pnpm run ci` green locally before every push.
 - `node scripts/check-feature-memory.mjs origin/main HEAD` passes.
 - After PR open: `@codex review` trigger, `baseline-checks`, `guard`, `AI Review` all SUCCESS.
 
 **Numerical sanity table (expected values, rounded):**
 
-| user | d | maxNonPeak | intensity(count=1) | intensity(max) | coreR(count=1) | coreR(max) |
-|---|---|---|---|---|---|---|
-| kiaquila | 0.13 | ~17 | 0.24 | 1.0 | ~0.89 | ~1.88 |
-| staks-sor | 0.20 | ~30 | 0.20 | 1.0 | ~0.87 | ~1.92 |
-| yeachan-heo | 0.31 | ~160 | 0.14 | 1.0 | ~0.82 | ~1.98 |
+| user        | d    | maxNonPeak | intensity(count=1) | intensity(max) | coreR(count=1) | coreR(max) |
+| ----------- | ---- | ---------- | ------------------ | -------------- | -------------- | ---------- |
+| kiaquila    | 0.13 | ~17        | 0.24               | 1.0            | ~0.89          | ~1.88      |
+| staks-sor   | 0.20 | ~30        | 0.20               | 1.0            | ~0.87          | ~1.92      |
+| yeachan-heo | 0.31 | ~160       | 0.14               | 1.0            | ~0.82          | ~1.98      |

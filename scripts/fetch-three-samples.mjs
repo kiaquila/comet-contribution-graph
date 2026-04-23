@@ -45,7 +45,7 @@ const summary = results.map(({ user, days }) => {
   const activeFrac = active.length / total;
   // Histogram buckets
   const buckets = {
-    "1": counts.filter((c) => c === 1).length,
+    1: counts.filter((c) => c === 1).length,
     "2-4": counts.filter((c) => c >= 2 && c <= 4).length,
     "5-9": counts.filter((c) => c >= 5 && c <= 9).length,
     "10-19": counts.filter((c) => c >= 10 && c <= 19).length,

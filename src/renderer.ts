@@ -140,7 +140,7 @@ function haloRadius(t: number, d: number): number {
 }
 
 function haloOpacity(t: number, d: number): number {
-  const ceil = lerp(0.22, 0.30, d);
+  const ceil = lerp(0.22, 0.3, d);
   return HALO_OP_FLOOR + Math.sqrt(t) * (ceil - HALO_OP_FLOOR);
 }
 
