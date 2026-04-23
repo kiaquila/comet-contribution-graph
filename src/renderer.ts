@@ -384,11 +384,11 @@ function renderMonthLabels(
       }
     }
     if (newMonth === -1) continue;
-    lastMonth = newMonth;
-    const label = MONTHS[newMonth] ?? "";
     const x = GRID_X0 + col * CELL_SIZE;
     if (x - lastLabelX < 28) continue;
+    lastMonth = newMonth;
     lastLabelX = x;
+    const label = MONTHS[newMonth] ?? "";
     out += `<text${attrs([
       ["x", x],
       ["y", 12],
