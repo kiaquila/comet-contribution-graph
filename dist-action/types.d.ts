@@ -37,6 +37,10 @@ export interface Normalization {
     readonly median: number;
     readonly peakFloor: number;
     readonly activeDays: number;
+    readonly maxNonPeak: number;
+    readonly meanActive: number;
+    readonly cvActive: number;
+    readonly densityRegime: number;
 }
 export interface FetchOptions {
     readonly now?: Date;
