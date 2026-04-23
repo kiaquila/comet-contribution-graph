@@ -99,8 +99,10 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function nonPeakRadius(intensity: number): number {
-  return 0.8 + intensity * 2.2;
+function nonPeakRadius(intensity: number, densityFactor: number): number {
+  const rMin = lerp(1.2, 0.7, densityFactor);
+  const rMax = lerp(2.2, 1.8, densityFactor);
+  return rMin + Math.sqrt(intensity) * (rMax - rMin);
 }
 
 function nonPeakFill(intensity: number, hue: number): string {
@@ -109,8 +111,9 @@ function nonPeakFill(intensity: number, hue: number): string {
   return `hsl(${hue},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
 }
 
-function nonPeakOpacity(intensity: number): number {
-  return 0.45 + intensity * 0.5;
+function nonPeakOpacity(intensity: number, densityFactor: number): number {
+  const opacityFloor = lerp(0.55, 0.35, densityFactor);
+  return opacityFloor + Math.sqrt(intensity) * 0.3;
 }
 
 function peakFill(count: number): string {
@@ -163,8 +166,7 @@ function layout(
     const col = Math.floor(d.index / GRID_ROWS);
     const row = d.index % GRID_ROWS;
     const cx = GRID_X0 + col * CELL_SIZE + CELL_SIZE / 2 + jx;
-    const cy =
-      LABEL_BAND + row * CELL_SIZE + CELL_SIZE / 2 + PADDING + jy;
+    const cy = LABEL_BAND + row * CELL_SIZE + CELL_SIZE / 2 + PADDING + jy;
 
     placed.push({ ...d, cx, cy, shape, angle });
   }
@@ -172,11 +174,7 @@ function layout(
   return placed;
 }
 
-function renderBgStars(
-  seed: number,
-  theme: Theme,
-  animated: boolean,
-): string {
+function renderBgStars(seed: number, theme: Theme, animated: boolean): string {
   const rng = makePRNG(seed ^ 0xdeadbeef);
   let out = "";
   for (let i = 0; i < BG_STAR_COUNT; i++) {
@@ -203,10 +201,10 @@ function renderBgStars(
   return out;
 }
 
-function renderStar(d: PlacedDay, theme: Theme): string {
-  const r = nonPeakRadius(d.intensity);
+function renderStar(d: PlacedDay, theme: Theme, densityFactor: number): string {
+  const r = nonPeakRadius(d.intensity, densityFactor);
   const fill = nonPeakFill(d.intensity, theme.dataStarHue);
-  const opacity = nonPeakOpacity(d.intensity);
+  const opacity = nonPeakOpacity(d.intensity, densityFactor);
   let out = `<circle${attrs([
     ["cx", d.cx],
     ["cy", d.cy],
@@ -371,6 +369,7 @@ function renderMonthLabels(
   if (days.length === 0) return "";
   let out = "";
   let lastMonth = -1;
+  let lastLabelX = -Infinity;
   for (let col = 0; col < GRID_COLS; col++) {
     let newMonth = -1;
     for (let row = 0; row < GRID_ROWS; row++) {
@@ -388,6 +387,8 @@ function renderMonthLabels(
     lastMonth = newMonth;
     const label = MONTHS[newMonth] ?? "";
     const x = GRID_X0 + col * CELL_SIZE;
+    if (x - lastLabelX < 28) continue;
+    lastLabelX = x;
     out += `<text${attrs([
       ["x", x],
       ["y", 12],
@@ -487,7 +488,8 @@ export function renderCometSVG(
   const { theme, animated } = options;
   const seed = options.seed ?? DEFAULT_SEED;
 
-  const { days: normDays, peaks } = normalize(days);
+  const { days: normDays, peaks, activeDays } = normalize(days);
+  const densityFactor = Math.max(0.15, Math.min(1.0, activeDays / 365));
   const placed = layout(normDays, seed);
   const placedPeaks = placed.filter((d) => d.isPeak);
   const hasPeaks = peaks.length > 0;
@@ -508,8 +510,7 @@ export function renderCometSVG(
   for (const d of placed) {
     if (!d.isActive) continue;
     if (d.isPeak) continue;
-    if (!d.aboveMedian) continue;
-    out += renderStar(d, theme);
+    out += renderStar(d, theme, densityFactor);
   }
 
   if (hasPeaks && placedPeaks.length >= 2) {

@@ -63,8 +63,7 @@ export const _fns = {
 export async function run(): Promise<void> {
   try {
     const username = core.getInput("username", { required: true });
-    const token =
-      core.getInput("token") || process.env["GITHUB_TOKEN"] || "";
+    const token = core.getInput("token") || process.env["GITHUB_TOKEN"] || "";
     const reducedInput = core.getInput("reduced");
     const reduced = (reducedInput === "" ? "true" : reducedInput) !== "false";
     const branchInput = core.getInput("branch");
@@ -163,23 +162,14 @@ async function pushOrphan(args: {
   await _fns.exec("git", ["config", "user.name", "comet-graph-bot"], opts);
   await _fns.exec(
     "git",
-    [
-      "config",
-      "user.email",
-      "comet-graph-bot@users.noreply.github.com",
-    ],
+    ["config", "user.email", "comet-graph-bot@users.noreply.github.com"],
     opts,
   );
   await _fns.exec("git", ["checkout", "--orphan", args.branch], opts);
   await _fns.exec("git", ["add", ...args.files], opts);
   await _fns.exec(
     "git",
-    [
-      "commit",
-      "--quiet",
-      "-m",
-      `chore: regenerate ${args.files.join(", ")}`,
-    ],
+    ["commit", "--quiet", "-m", `chore: regenerate ${args.files.join(", ")}`],
     opts,
   );
   const url = `https://x-access-token:${args.token}@github.com/${args.repo}.git`;
