@@ -128,11 +128,7 @@ export function parseContributionsResponse(
       if (typeof date !== "string") {
         throw new Error("invalid payload: day.date is not a string");
       }
-      if (
-        typeof count !== "number" ||
-        !Number.isInteger(count) ||
-        count < 0
-      ) {
+      if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
         throw new Error(
           `invalid payload: contributionCount is not an integer ≥ 0 (got ${String(count)})`,
         );

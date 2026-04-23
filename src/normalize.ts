@@ -1,8 +1,4 @@
-import type {
-  ContributionDay,
-  Normalization,
-  NormalizedDay,
-} from "./types.js";
+import type { ContributionDay, Normalization, NormalizedDay } from "./types.js";
 
 const MIN_PEAKS = 2;
 const MAX_PEAKS = 7;
@@ -32,9 +28,7 @@ export function normalize(days: readonly ContributionDay[]): Normalization {
   const eligible = candidates.filter((d) => d.count >= peakFloor);
   const K = Math.min(MAX_PEAKS, Math.max(MIN_PEAKS, eligible.length));
   const peakCount = Math.min(K, active.length);
-  const peakSet = new Set(
-    candidates.slice(0, peakCount).map((d) => d.index),
-  );
+  const peakSet = new Set(candidates.slice(0, peakCount).map((d) => d.index));
 
   const peakValues: number[] = [];
   for (const i of peakSet) {
@@ -49,6 +43,7 @@ export function normalize(days: readonly ContributionDay[]): Normalization {
     const isActive = d.count > 0;
     const isPeak = peakSet.has(d.index);
     const aboveMedian = d.count > median;
+    // Non-peak intensity only; peaks use peakIntensity via a separate render path.
     const intensity =
       isActive && !isPeak && maxActive > 0
         ? Math.min(d.count / maxActive, 1)
@@ -74,5 +69,11 @@ export function normalize(days: readonly ContributionDay[]): Normalization {
     .filter((d) => d.isPeak)
     .sort((a, b) => a.index - b.index);
 
-  return { days: normalizedDays, peaks, median, peakFloor };
+  return {
+    days: normalizedDays,
+    peaks,
+    median,
+    peakFloor,
+    activeDays: active.length,
+  };
 }

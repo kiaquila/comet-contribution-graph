@@ -1,0 +1,20 @@
+name: showcase-graph
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: showcase-graph
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./
+        with:
+          username: Staks-sor
+          branch: showcase

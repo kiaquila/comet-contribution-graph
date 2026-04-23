@@ -36,6 +36,7 @@ export interface Normalization {
     readonly peaks: readonly NormalizedDay[];
     readonly median: number;
     readonly peakFloor: number;
+    readonly activeDays: number;
 }
 export interface FetchOptions {
     readonly now?: Date;
