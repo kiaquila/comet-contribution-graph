@@ -44,15 +44,17 @@ A single `<ellipse>` with:
 - Opacity animation: `1;1;0;0` over `keyTimes="0;travFrac;travFrac+0.001;1"` —
   visible during the traversal phase, invisible during hold (matches head).
 
-### Head shrink (~15%)
+### Head shrink (nucleus ~15%, semi-transparent coma ~30%)
 
-Reduce the three head radii uniformly:
+Nucleus stays ~15% smaller than baseline; the two semi-transparent coma halos
+shrink further (~30% below the first pass) to bring the head visually in line
+with the other stars.
 
-| constant             | before | after |
-| -------------------- | ------ | ----- |
-| `COMET_NUCLEUS_R`    | 2.20   | 1.85  |
-| `COMET_COMA_INNER_R` | 5.50   | 4.70  |
-| `COMET_COMA_OUTER_R` | 9.00   | 7.65  |
+| constant             | baseline | after |
+| -------------------- | -------- | ----- |
+| `COMET_NUCLEUS_R`    | 2.20     | 1.85  |
+| `COMET_COMA_INNER_R` | 5.50     | 3.29  |
+| `COMET_COMA_OUTER_R` | 9.00     | 5.36  |
 
 Opacities unchanged (0.55 / 0.28 / 1.0).
 

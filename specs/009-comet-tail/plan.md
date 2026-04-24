@@ -13,12 +13,12 @@
 
 ## Changes — src/renderer.ts
 
-### Head radii (15% shrink)
+### Head radii (nucleus −15%, semi-transparent coma −30%)
 
 ```ts
-const COMET_NUCLEUS_R = 1.85; // was 2.2
-const COMET_COMA_INNER_R = 4.7; // was 5.5
-const COMET_COMA_OUTER_R = 7.65; // was 9
+const COMET_NUCLEUS_R = 1.85; // was 2.2  (−15%)
+const COMET_COMA_INNER_R = 3.29; // was 5.5  (−40% total, −30% on top of the first pass)
+const COMET_COMA_OUTER_R = 5.36; // was 9    (−40% total, −30% on top of the first pass)
 ```
 
 ### New tail constants
