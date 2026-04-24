@@ -4,7 +4,7 @@ A cinematic GitHub contribution graph. A comet traces your most productive days 
 
 [![comet-graph](https://github.com/kiaquila/comet-contribution-graph/actions/workflows/comet-graph.yml/badge.svg)](https://github.com/kiaquila/comet-contribution-graph/actions/workflows/comet-graph.yml) [![OSV Scanner](https://github.com/kiaquila/comet-contribution-graph/actions/workflows/osv-scan.yml/badge.svg)](https://github.com/kiaquila/comet-contribution-graph/actions/workflows/osv-scan.yml) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-![cinematic comet contribution graph](https://raw.githubusercontent.com/kiaquila/comet-contribution-graph/showcase/comet.svg)
+![cinematic comet contribution graph](https://raw.githubusercontent.com/kiaquila/comet-contribution-graph/comet-graph/comet.svg)
 
 ## Usage
 

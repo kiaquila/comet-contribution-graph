@@ -2,6 +2,13 @@ name: comet-graph
 on:
   schedule:
     - cron: "0 3 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "dist-action/**"
+      - "action.yml"
+      - "scripts/fetch-contributions.mjs"
   workflow_dispatch:
 concurrency:
   group: comet-graph
