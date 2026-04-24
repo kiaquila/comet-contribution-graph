@@ -29,6 +29,7 @@ Primary choice after side-by-side visual review of 6 variants × 4 accounts
 ### Tail
 
 A single `<ellipse>` with:
+
 - `cx="-rx" cy="0" rx="56" ry="3.0"` — leading edge (local x=0) lands on the
   motion point; body extends backwards along -tangent.
 - `fill="url(#tail-grad)"` — horizontal `<linearGradient>` in local coords,
@@ -47,11 +48,11 @@ A single `<ellipse>` with:
 
 Reduce the three head radii uniformly:
 
-| constant | before | after |
-|---|---|---|
-| `COMET_NUCLEUS_R` | 2.20 | 1.85 |
-| `COMET_COMA_INNER_R` | 5.50 | 4.70 |
-| `COMET_COMA_OUTER_R` | 9.00 | 7.65 |
+| constant             | before | after |
+| -------------------- | ------ | ----- |
+| `COMET_NUCLEUS_R`    | 2.20   | 1.85  |
+| `COMET_COMA_INNER_R` | 5.50   | 4.70  |
+| `COMET_COMA_OUTER_R` | 9.00   | 7.65  |
 
 Opacities unchanged (0.55 / 0.28 / 1.0).
 

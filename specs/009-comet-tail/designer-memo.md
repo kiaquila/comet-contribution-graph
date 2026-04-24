@@ -52,6 +52,7 @@ Head of the ellipse tracks the comet position; body sweeps back along direction
 of travel. Closest SMIL analogue to the prototype's gradient tail.
 
 Pitfalls:
+
 - `rotate="auto"` support is inconsistent across SVG renderers — but all
   Chromium/WebKit/Gecko versions from the last 5+ years support it. Low real-world risk.
 - Gradient must be in element's local coordinate system (not `userSpaceOnUse`),

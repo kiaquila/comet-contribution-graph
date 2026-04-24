@@ -16,9 +16,9 @@
 ### Head radii (15% shrink)
 
 ```ts
-const COMET_NUCLEUS_R = 1.85;       // was 2.2
-const COMET_COMA_INNER_R = 4.7;     // was 5.5
-const COMET_COMA_OUTER_R = 7.65;    // was 9
+const COMET_NUCLEUS_R = 1.85; // was 2.2
+const COMET_COMA_INNER_R = 4.7; // was 5.5
+const COMET_COMA_OUTER_R = 7.65; // was 9
 ```
 
 ### New tail constants
@@ -56,7 +56,12 @@ Before:
 ```ts
 // Trail (rendered first so head/coma paint over it)
 for (const particle of COMET_TRAIL) {
-  out += emitCometLayer(particle.radius, theme.cometTrail, particle.opacity, particle.beginOffsetS);
+  out += emitCometLayer(
+    particle.radius,
+    theme.cometTrail,
+    particle.opacity,
+    particle.beginOffsetS,
+  );
 }
 ```
 
@@ -93,12 +98,12 @@ out +=
 
 ## Risk assessment
 
-| risk | mitigation |
-|---|---|
-| `rotate="auto"` rendering inconsistency in rare browsers | Supported in all current Chromium/WebKit/Gecko; GitHub's camo renders via OS SVG engine which is one of these. Low real-world risk. |
-| Gradient id collision if multiple SVGs inlined on same page | Production path is `<img>` — each SVG is isolated. No risk for shipped flow. |
-| Tail clips at viewBox edges when comet near left boundary | Fade-to-transparent left end of gradient hides clipping artifact. Acceptable. |
-| Unused `theme.cometTrail` field now | Left in `Theme` interface to avoid breaking consumers. Mark as deprecated in a follow-up if it matters. |
+| risk                                                        | mitigation                                                                                                                          |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `rotate="auto"` rendering inconsistency in rare browsers    | Supported in all current Chromium/WebKit/Gecko; GitHub's camo renders via OS SVG engine which is one of these. Low real-world risk. |
+| Gradient id collision if multiple SVGs inlined on same page | Production path is `<img>` — each SVG is isolated. No risk for shipped flow.                                                        |
+| Tail clips at viewBox edges when comet near left boundary   | Fade-to-transparent left end of gradient hides clipping artifact. Acceptable.                                                       |
+| Unused `theme.cometTrail` field now                         | Left in `Theme` interface to avoid breaking consumers. Mark as deprecated in a follow-up if it matters.                             |
 
 ## Non-goals for this PR
 
