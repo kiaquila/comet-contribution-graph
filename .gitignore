@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-renderer/
 sample-out/
+experiments/
+prototypes/v2-local/
 .vercel/
 .codex/
 .claude/
