@@ -33,11 +33,13 @@ const HALO_DURATION_S = 3;
 const HALO_STAGGER_S = 0.6;
 
 const DEFAULT_SEED = 0x5eed;
-const COMET_NUCLEUS_R = 2.2;
-const COMET_COMA_INNER_R = 5.5;
-const COMET_COMA_OUTER_R = 9;
+const COMET_NUCLEUS_R = 1.85;
+const COMET_COMA_INNER_R = 3.29;
+const COMET_COMA_OUTER_R = 5.36;
 const COMET_COMA_INNER_OPACITY = 0.55;
 const COMET_COMA_OUTER_OPACITY = 0.28;
+const COMET_TAIL_RX = 56;
+const COMET_TAIL_RY = 3.0;
 
 // 5-bucket cell placement: 4 corners + center (weights 0.22/0.22/0.22/0.22/0.12).
 // Replaces the old continuous ±0.32 * CELL_SIZE jitter.
@@ -58,19 +60,6 @@ const BG_TIER_COUNTS: ReadonlyArray<readonly [number, number, number]> = [
   [0.15, 50, 0.12],
   [0.45, 65, 0.15],
   [Infinity, 80, 0.18],
-];
-
-interface TrailParticle {
-  readonly beginOffsetS: number;
-  readonly radius: number;
-  readonly opacity: number;
-}
-
-const COMET_TRAIL: readonly TrailParticle[] = [
-  { beginOffsetS: 0.18, radius: 1.8, opacity: 0.45 },
-  { beginOffsetS: 0.36, radius: 1.3, opacity: 0.28 },
-  { beginOffsetS: 0.54, radius: 0.9, opacity: 0.16 },
-  { beginOffsetS: 0.72, radius: 0.6, opacity: 0.08 },
 ];
 
 const MONTHS = [
@@ -467,15 +456,14 @@ function renderComet(
     );
   };
 
-  // Trail (rendered first so head/coma paint over it)
-  for (const particle of COMET_TRAIL) {
-    out += emitCometLayer(
-      particle.radius,
-      theme.cometTrail,
-      particle.opacity,
-      particle.beginOffsetS,
-    );
-  }
+  // Tail: single gradient ellipse with rotate="auto" so the gradient tracks
+  // the path tangent. Rendered first so head/coma paint over it.
+  const tailDur = `dur="${cycleS.toFixed(2)}s"`;
+  out +=
+    `<ellipse cx="-${COMET_TAIL_RX}" cy="0" rx="${COMET_TAIL_RX}" ry="${COMET_TAIL_RY.toFixed(2)}" fill="url(#tail-grad)" filter="url(#tail-blur)">` +
+    `<animateMotion ${tailDur} begin="0s" repeatCount="indefinite" keyTimes="${motionKeyTimes}" keyPoints="${motionKeyPoints}" calcMode="linear" rotate="auto" path="${pathD}" />` +
+    `<animate attributeName="opacity" ${tailDur} begin="0s" repeatCount="indefinite" keyTimes="${opacityKeyTimes}" values="1;1;0;0" />` +
+    `</ellipse>`;
 
   // Coma (outer halo then inner halo)
   out += emitCometLayer(
@@ -517,7 +505,7 @@ export function renderCometSVG(
     ["height", SVG_HEIGHT],
     ["fill", theme.background],
   ])} />`;
-  out += `<defs><filter id="organic-sphere" x="-80%" y="-80%" width="260%" height="260%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="1.4" /></filter></defs>`;
+  out += `<defs><linearGradient id="tail-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c8e0ff" stop-opacity="0"/><stop offset="40%" stop-color="#c8e0ff" stop-opacity="0.1"/><stop offset="70%" stop-color="#d8ecff" stop-opacity="0.5"/><stop offset="90%" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></linearGradient><filter id="tail-blur" x="-20%" y="-100%" width="140%" height="300%"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="organic-sphere" x="-80%" y="-80%" width="260%" height="260%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="1.4" /></filter></defs>`;
   out += renderDayLabels(theme);
   out += renderMonthLabels(days, theme);
   out += renderBgStars(seed, theme, animated, densityRegime);
