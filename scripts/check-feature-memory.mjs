@@ -85,10 +85,41 @@ for (const file of changedFiles) {
   featureIds.add(match[1]);
 }
 
-const hasCompleteFeatureMemory = (featureId) =>
-  existsSync(resolve(repoRoot, "specs", featureId, "spec.md")) &&
-  existsSync(resolve(repoRoot, "specs", featureId, "plan.md")) &&
-  existsSync(resolve(repoRoot, "specs", featureId, "tasks.md"));
+// In CI / pre-push the script runs from a checkout of the trusted base
+// branch (see specs/011-pipeline-gate-trusted-base), so `existsSync`
+// against the working tree would miss specs added in the PR head. We
+// probe the PR head ref via `git cat-file -e <ref>:<path>` instead —
+// it is a non-executing existence check that does not run any hooks
+// or filters from the PR's tree. The `--worktree` mode keeps the
+// filesystem probe because it is meant to validate uncommitted local
+// changes that have no ref to interrogate.
+const hasFileAtRef = (ref, path) => {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${ref}:${path}`], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const hasCompleteFeatureMemory = (featureId) => {
+  if (inspectWorktree) {
+    return (
+      existsSync(resolve(repoRoot, "specs", featureId, "spec.md")) &&
+      existsSync(resolve(repoRoot, "specs", featureId, "plan.md")) &&
+      existsSync(resolve(repoRoot, "specs", featureId, "tasks.md"))
+    );
+  }
+
+  return (
+    hasFileAtRef(headRef, `specs/${featureId}/spec.md`) &&
+    hasFileAtRef(headRef, `specs/${featureId}/plan.md`) &&
+    hasFileAtRef(headRef, `specs/${featureId}/tasks.md`)
+  );
+};
 
 const validFeature = [...featureIds].find(hasCompleteFeatureMemory);
 
