@@ -43,7 +43,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=200 origin "${{ github.event.pull_request.head.sha }}"
+          # No --depth cap: the trusted-base checkout above already pulls
+          # main's full history (fetch-depth: 0), so this fetch only
+          # adds the PR-side commits up to the merge-base and stops. A
+          # fixed shallow cap would silently drop the merge-base for
+          # long-lived PR branches and break `git diff $BASE...$HEAD`
+          # with "fatal: bad revision" (Codex P2 on PR #14).
+          git fetch --no-tags origin "${{ github.event.pull_request.head.sha }}"
 
       - name: Resolve diff refs
         shell: bash

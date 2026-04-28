@@ -55,6 +55,15 @@ gate trust boundary. No renderer / action / data-layer changes.
 - Fetching by SHA (rather than by `refs/pull/N/head`) is the simplest
   shape: GitHub Actions resolves `github.event.pull_request.head.sha`
   for us and the SHA is verifiable.
+- **No `--depth` cap on the fetch** (Codex P2 on PR #14). The
+  trusted-base checkout already pulled `main`'s full history with
+  `fetch-depth: 0`, so an unbounded `git fetch origin <sha>` only
+  adds the PR-side commits down to the existing merge-base and
+  stops; bandwidth is bounded by the actual divergence. A fixed cap
+  like `--depth=200` would silently drop the merge-base for
+  long-lived PR branches (or branches with >cap commits since fork)
+  and break the diff with `fatal: bad revision` even on otherwise
+  valid PRs.
 
 ## Bootstrap caveat (deliberately accepted)
 
