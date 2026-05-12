@@ -62,6 +62,7 @@ The current PR head SHA is merge-ready only when:
 - `baseline-checks` is green
 - `guard` is green
 - `AI Review` is green
+- `osv-scan` is green once branch protection is applied
 - Vercel preview is healthy for the changed flow
 - no blocking review findings remain unresolved
 - no merge conflicts remain
@@ -69,6 +70,7 @@ The current PR head SHA is merge-ready only when:
 ## Related Docs
 
 - `docs_comet/project/devops/ai-orchestration-protocol.md`
+- `docs_comet/project/devops/branch-protection.md`
 - `docs_comet/project/devops/local-preflight.md`
 - `docs_comet/project/devops/senar-mapping.md`
 - `docs_comet/project/devops/review-trigger-automation.md`

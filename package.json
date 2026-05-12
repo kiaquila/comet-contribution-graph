@@ -20,6 +20,7 @@
     "test": "pnpm run build:renderer && node --test \"tests/**/*.test.mjs\"",
     "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run check:ts && pnpm run build && pnpm run build:action && pnpm run check:dist && pnpm run format:check && pnpm run test",
     "pr:publish": "node scripts/publish-branch.mjs",
+    "branch:protect": "node scripts/apply-branch-protection.mjs",
     "review:switch": "node scripts/switch-review-agent.mjs",
     "worker:start": "node scripts/start-implementation-worker.mjs",
     "worktree:new": "node scripts/new-worktree.mjs"

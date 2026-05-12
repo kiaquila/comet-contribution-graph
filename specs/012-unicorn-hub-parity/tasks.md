@@ -12,7 +12,7 @@
 - [x] T004 Add config-driven repository control-plane helpers and preflight.
 - [x] T005 Add SENAR templates, PR checklist, and docs.
 - [x] T006 Port event-driven AI Review marker/rerun flow.
-- [ ] T007 Add branch-protection helper and docs.
+- [x] T007 Add branch-protection helper and docs.
 - [ ] T008 Document intentionally skipped Unicorn Hub blueprint internals.
 
 ## Verification
@@ -42,6 +42,8 @@
   template and review docs ask humans/review agents to verify evidence quality.
 - Preserve the comet-specific review backend policy while porting Unicorn Hub's
   event-driven gate: `codex` and `gemini` are enabled; Claude remains rejected.
+- Do not apply branch protection from this unmerged branch; land the helper
+  first, then run it from trusted `main`.
 
 ### Known Issues
 
