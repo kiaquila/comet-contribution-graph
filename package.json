@@ -45,6 +45,7 @@
   },
   "pnpm": {
     "overrides": {
+      "fast-uri": "^3.1.2",
       "undici": "^6.24.0"
     }
   }
