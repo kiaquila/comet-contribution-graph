@@ -25,6 +25,17 @@ This doc covers PR-specific gates. The 10-step Standard Feature Loop lives in `.
   memory before replaying the repository CI chain locally.
 - A PR is not done while required checks are queued, running, or red.
 
+## SENAR Done Gate
+
+Before merge, feature memory and the PR checklist must make the supervised
+verification contract visible:
+
+- goal and scope are named
+- acceptance criteria have evidence
+- at least one negative scenario is covered or explicitly waived
+- `tasks.md` records dead ends, decisions, and known issues
+- remaining known issues are accepted by the human merge owner
+
 ## Review Contract
 
 Summary (details in `review-contract.md` and `ai-orchestration-protocol.md`):
@@ -58,6 +69,7 @@ The current PR head SHA is merge-ready only when:
 
 - `docs_comet/project/devops/ai-orchestration-protocol.md`
 - `docs_comet/project/devops/local-preflight.md`
+- `docs_comet/project/devops/senar-mapping.md`
 - `docs_comet/project/devops/review-trigger-automation.md`
 - `docs_comet/project/devops/vercel-cd.md`
 - `docs_comet/project/devops/delivery-playbook.md`

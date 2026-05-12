@@ -10,7 +10,7 @@
 
 - [x] T003 Fix OSV `fast-uri` finding and update stale repo memory.
 - [x] T004 Add config-driven repository control-plane helpers and preflight.
-- [ ] T005 Add SENAR templates, PR checklist, and docs.
+- [x] T005 Add SENAR templates, PR checklist, and docs.
 - [ ] T006 Port event-driven AI Review marker/rerun flow.
 - [ ] T007 Add branch-protection helper and docs.
 - [ ] T008 Document intentionally skipped Unicorn Hub blueprint internals.
@@ -38,6 +38,8 @@
 - Keep `check-static-baseline.mjs` in place for now as a historical/product
   helper, but route `pnpm run check:repo` to the config-aware
   `check-repo-baseline.mjs`.
+- Keep SENAR lightweight: structural gates require complete files, while the PR
+  template and review docs ask humans/review agents to verify evidence quality.
 
 ### Known Issues
 

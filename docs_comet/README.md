@@ -18,6 +18,7 @@
 
 - `project/devops/ai-orchestration-protocol.md` — agent routing, default review backend, native execution surfaces. **Canonical source** for review policy.
 - `project/devops/ai-pr-workflow.md` — PR gates and merge rules.
+- `project/devops/senar-mapping.md` — maps goal, scope, evidence, negative scenarios, and process memory to repo artifacts.
 - `project/devops/review-contract.md` — what each backend produces; severity rules.
 - `project/devops/review-trigger-automation.md` — bot-trigger rejection (Tier 1 active; design for Tier 2/3 in ADR).
 - `project/devops/local-preflight.md` — local verification command and config-driven gate policy.

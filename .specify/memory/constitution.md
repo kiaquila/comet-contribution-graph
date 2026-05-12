@@ -30,7 +30,12 @@ through Vercel without relying on hidden session memory.
 7. Documentation moves with behavior.
    Changes to app behavior, orchestration, CI/CD, or architecture must update
    durable docs in the same PR.
-8. Animation/SVG output stability.
+8. Supervised verification evidence.
+   Every product-code or control-plane PR must name goal, scope, acceptance
+   criteria, negative scenarios, verification evidence, and process memory
+   before merge. AI-written summaries do not replace evidence tied to the
+   requested behavior.
+9. Animation/SVG output stability.
    The graph must remain renderable as a static SVG (no-animation fallback for
    `prefers-reduced-motion`), keep the comet animation correct across all
    supported viewport widths, and preserve the GitHub Action artifact contract —

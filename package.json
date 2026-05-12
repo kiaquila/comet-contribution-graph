@@ -16,7 +16,7 @@
     "check:js": "eslint \"prototypes/**/*.html\"",
     "check:ts": "tsc --noEmit",
     "preflight": "node scripts/preflight.mjs",
-    "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\" \"action.yml\" \"src/**/*.ts\"",
+    "format:check": "prettier --check \"prototypes/**/*.html\" \"tests/**/*.mjs\" \"AGENTS.md\" \"CLAUDE.md\" \".specify/**/*.md\" \"specs/**/*.md\" \"docs_comet/**/*.md\" \".github/pull_request_template.md\" \".github/workflows/*.{yml,yaml}\" \".gemini/**/*.{md,yaml,yml}\" \"scripts/**/*.mjs\" \"package.json\" \"vercel.json\" \".htmlvalidate.json\" \"README.md\" \"action.yml\" \"src/**/*.ts\"",
     "test": "pnpm run build:renderer && node --test \"tests/**/*.test.mjs\"",
     "ci": "pnpm run check:repo && pnpm run check:html && pnpm run check:js && pnpm run check:ts && pnpm run build && pnpm run build:action && pnpm run check:dist && pnpm run format:check && pnpm run test",
     "pr:publish": "node scripts/publish-branch.mjs",

@@ -66,3 +66,10 @@ For `comet-contribution-graph`, reviewers should prioritize:
 - bundle size for Action embed (dependencies in the Node rendering path must stay lean)
 - CDN supply-chain risks (Space Mono, any future script CDN dependencies)
 - build and deploy safety
+
+## SENAR Review Lens
+
+Reviewers should check the implementation against the active feature memory.
+Acceptance criteria, negative scenarios, and process-memory notes are part of
+the review contract; an AI summary without evidence does not satisfy the done
+gate.
