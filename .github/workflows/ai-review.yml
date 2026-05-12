@@ -2,20 +2,17 @@ name: AI Review
 
 on:
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: Pull request number to route and validate
+        description: Pull request number to validate
         required: true
         type: string
       trigger_mode:
-        description: Review gate trigger mode (gemini/codex only; ignored for claude)
+        description: Review trigger mode; use skip unless a backend explicitly supports automation
         required: false
+        default: skip
         type: string
 
 env:
@@ -28,95 +25,83 @@ permissions:
 
 concurrency:
   group: >-
-    ai-review-${{ github.event_name }}-${{
-      github.event.pull_request.number ||
-      inputs.pr_number ||
-      github.ref
-    }}
+    ai-review-${{ github.event.pull_request.number ||
+    inputs.pr_number ||
+    github.ref }}
   cancel-in-progress: true
 
 jobs:
   ai-review:
-    # Gate-based path: gemini and codex (and unset default → codex)
-    if: >
+    # Gate-based path: codex and gemini only. Claude review is intentionally
+    # non-operational in this repository until restored in a dedicated PR.
+    name: AI Review
+    if: |
       (
         github.event_name == 'workflow_dispatch' ||
-        (
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.draft == false
-        )
+        github.event.pull_request.draft == false
       ) &&
       (
         vars.AI_REVIEW_AGENT == '' ||
-        vars.AI_REVIEW_AGENT == 'gemini' ||
-        vars.AI_REVIEW_AGENT == 'codex'
+        vars.AI_REVIEW_AGENT == 'codex' ||
+        vars.AI_REVIEW_AGENT == 'gemini'
       )
-    name: AI Review
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Checkout trusted base (gate code never comes from PR head)
+      - name: Checkout trusted gate scripts
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
 
       - name: Resolve PR context
         id: pr
+        run: node scripts/resolve-pr-context.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           AI_REVIEW_PR_NUMBER: ${{ inputs.pr_number }}
-        run: node scripts/resolve-pr-context.mjs
 
       - name: Resolve selected review policy
         id: policy
         shell: bash
+        env:
+          SELECTED_AGENT: ${{ vars.AI_REVIEW_AGENT }}
+          REQUESTED_TRIGGER_MODE: ${{ inputs.trigger_mode }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          selected="${{ vars.AI_REVIEW_AGENT }}"
-          if [ -z "$selected" ]; then
-            selected="codex"
-          fi
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            trigger_mode="${{ inputs.trigger_mode || 'skip' }}"
+          selected="${SELECTED_AGENT:-codex}"
+          selected="${selected:-codex}"
+          case "$selected" in
+            codex|gemini) ;;
+            *)
+              echo "::error::Unsupported AI_REVIEW_AGENT value: '$selected'. Allowed: codex, gemini."
+              exit 1
+              ;;
+          esac
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            trigger_mode="${REQUESTED_TRIGGER_MODE:-skip}"
           else
-            # All three backends (gemini, codex, claude) reject bot-posted
-            # trigger comments on pull_request events, so the gate stays in
-            # skip mode. Only Gemini Code Assist auto-reviews on PR open;
-            # codex and claude require a human-authored trigger on every
-            # review (open + synchronize). Manual recovery uses
-            # `pnpm run review:switch` or a trusted human trigger comment.
-            # See docs_comet/project/devops/review-trigger-automation.md
-            # for the full constraint matrix and proposed automation.
             trigger_mode="skip"
           fi
-
+          case "$trigger_mode" in
+            skip|comment) ;;
+            *)
+              echo "::error::Unsupported AI_REVIEW_TRIGGER_MODE value: '$trigger_mode'. Allowed: skip, comment."
+              exit 1
+              ;;
+          esac
           echo "selected_agent=$selected" >> "$GITHUB_OUTPUT"
           echo "trigger_mode=$trigger_mode" >> "$GITHUB_OUTPUT"
 
-          {
-            echo "## AI Review policy"
-            echo ""
-            echo "- selected agent: \`$selected\`"
-            echo "- trigger mode: \`$trigger_mode\`"
-            echo "- event: \`${{ github.event_name }}\`"
-            echo ""
-            echo "See docs_comet/project/devops/review-trigger-automation.md for why no backend auto-retriggers on pull_request events."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Mark native review start
-        id: start
-        run: echo "triggered_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-
       - name: Route and validate selected native review
+        run: node scripts/ai-review-gate.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           AI_REVIEW_AGENT: ${{ steps.policy.outputs.selected_agent }}
           AI_REVIEW_PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          AI_REVIEW_HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
           AI_REVIEW_TRIGGER_MODE: ${{ steps.policy.outputs.trigger_mode }}
-          AI_REVIEW_TRIGGERED_AT: ${{ steps.start.outputs.triggered_at }}
-          AI_REVIEW_WAIT_MS: "1200000"
-          AI_REVIEW_POLL_MS: "15000"
-        run: node scripts/ai-review-gate.mjs
+          AI_REVIEW_WAIT_MS: "30000"
+          AI_REVIEW_POLL_MS: "5000"
+          AI_REVIEW_MAX_POLL_MS: "10000"
+          AI_REVIEW_DEBOUNCE_MS: "5000"

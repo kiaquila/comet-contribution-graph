@@ -11,7 +11,7 @@
 - [x] T003 Fix OSV `fast-uri` finding and update stale repo memory.
 - [x] T004 Add config-driven repository control-plane helpers and preflight.
 - [x] T005 Add SENAR templates, PR checklist, and docs.
-- [ ] T006 Port event-driven AI Review marker/rerun flow.
+- [x] T006 Port event-driven AI Review marker/rerun flow.
 - [ ] T007 Add branch-protection helper and docs.
 - [ ] T008 Document intentionally skipped Unicorn Hub blueprint internals.
 
@@ -40,6 +40,8 @@
   `check-repo-baseline.mjs`.
 - Keep SENAR lightweight: structural gates require complete files, while the PR
   template and review docs ask humans/review agents to verify evidence quality.
+- Preserve the comet-specific review backend policy while porting Unicorn Hub's
+  event-driven gate: `codex` and `gemini` are enabled; Claude remains rejected.
 
 ### Known Issues
 

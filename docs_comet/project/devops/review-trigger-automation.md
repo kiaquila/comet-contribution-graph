@@ -10,7 +10,7 @@ All three supported review backends reject bot-posted trigger comments on `pull_
 - **Gemini** — `gemini-code-assist[bot]` silently ignores bot-posted `/gemini review` comments.
 - **Claude** — `claude-review.yml` gates on `author_association in (OWNER, MEMBER, COLLABORATOR)` and drops bot-authored comments.
 
-Only Gemini Code Assist auto-reviews PRs on `opened` / `ready_for_review`. With `AI_REVIEW_AGENT=codex` (current default) or `claude`, **even the first review on PR open requires a human-authored trigger** — the gate runs with `trigger_mode=skip` on `pull_request` events and polls for an existing same-head native review, so without a human trigger it waits until timeout. Every subsequent push likewise requires a human-authored trigger for all three backends.
+Only Gemini Code Assist auto-reviews PRs on `opened` / `ready_for_review`. With `AI_REVIEW_AGENT=codex` (current default) or `claude`, **even the first review on PR open requires a human-authored trigger** — the gate runs with `trigger_mode=skip` on `pull_request` events and fails fast when no trusted current-head review-request marker or review evidence exists. Every subsequent push likewise requires a human-authored trigger for all three backends.
 
 ## Core Insight
 
@@ -27,8 +27,13 @@ pnpm run review:switch -- --to <agent>
 The script:
 
 1. flips the `AI_REVIEW_AGENT` repository variable if different from current
-2. posts the correct native trigger comment (`@codex review`, `/gemini review`, `@claude review once`) using the local `gh` CLI auth — human-authored, therefore trusted
-3. reruns the most recent failed `AI Review` job on the current PR head
+2. posts the correct native trigger comment (`@codex review` or `/gemini review`) using the local `gh` CLI auth — human-authored, therefore trusted
+3. records a trusted current-head review-request marker through `AI Command Policy`
+4. reruns the most recent failed `AI Review` job on the current PR head
+
+When the selected backend posts trusted review evidence, `AI Review Rerun`
+reruns the required `AI Review` check again so it can validate the evidence
+without a long polling window.
 
 A complementary `pnpm run review:retrigger` (not yet implemented) would skip step 1 for the "just rerun the current agent" case.
 

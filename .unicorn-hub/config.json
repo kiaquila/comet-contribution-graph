@@ -43,6 +43,7 @@
     ".github/dependabot.yml",
     ".github/pull_request_template.md",
     ".github/workflows/ai-command-policy.yml",
+    ".github/workflows/ai-review-rerun.yml",
     ".github/workflows/ai-review.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/osv-scan.yml",
@@ -66,8 +67,10 @@
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
     "prototypes/variant-d-grid-peaks.html",
+    "scripts/ai-command-policy.mjs",
     "scripts/ai-review-gate.mjs",
     "scripts/ai-review-helpers.mjs",
+    "scripts/ai-review-rerun.mjs",
     "scripts/check-feature-memory.mjs",
     "scripts/check-repo-baseline.mjs",
     "scripts/new-worktree.mjs",
@@ -84,6 +87,8 @@
     "src/renderer.ts",
     "tests/action.test.mjs",
     "tests/bootstrap.test.mjs",
+    "tests/helpers.test.mjs",
+    "tests/rerun.test.mjs",
     "vercel.json"
   ],
   "baselineRequiredDirs": [

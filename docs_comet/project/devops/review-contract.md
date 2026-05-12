@@ -7,7 +7,7 @@
 All three backends reject bot-posted trigger comments. A human-authored trigger is required:
 
 - on **every new push** (`pull_request: synchronize`) for any backend, and
-- on **PR open** for `codex` and `claude` — only Gemini Code Assist auto-reviews on `opened` / `ready_for_review`. With `AI_REVIEW_AGENT=codex` (current default), the initial `AI Review` run waits until timeout unless a human posts `@codex review` right after opening the PR.
+- on **PR open** for `codex` and `claude` — only Gemini Code Assist auto-reviews on `opened` / `ready_for_review`. With `AI_REVIEW_AGENT=codex` (current default), the initial `AI Review` run fails fast unless a trusted current-head marker or evidence exists.
 
 Full backend matrix and mitigation Tiers: see `review-trigger-automation.md`. Canonical recovery: `pnpm run review:switch -- --to <agent>`.
 
@@ -21,10 +21,11 @@ Full backend matrix and mitigation Tiers: see `review-trigger-automation.md`. Ca
 - In `trigger_mode=skip`, formal reviews with `commit_id === headSha`
   stay authoritative.
 - Summary-only / setup-error comments are accepted only when they land
-  after the current head's PR timeline activation event, and after the
-  newest same-head human `@codex review` trigger if one exists.
-- If the timeline lookup is unavailable, the gate logs a warning and
-  fails closed by waiting for formal review only.
+  after a trusted current-head review-request marker. If the summary does not
+  name the head SHA directly, the gate rejects it when a commit or force-push
+  event occurred between the source trigger and summary.
+- If evidence is absent, `AI Review` fails fast and is rerun by trusted trigger
+  or trusted review-evidence events.
 
 ## Gemini Review
 

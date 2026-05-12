@@ -1,869 +1,332 @@
 #!/usr/bin/env node
-
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import {
-  classifyCodexSetupReply,
-  classifyCodexSummaryComment,
-  codexReviewerLogins,
-  findLatestHeadActivationIndex,
-  matchesCodexReview,
-  matchesCodexSummaryComment,
-  pickAuthoritativeCodexSkipModeComment,
+  createAiReviewRequestMarkerBody,
+  hasHeadUpdateBetweenTimestamps,
+  isAcceptableClaudeComment,
+  isAcceptableCodexSummaryComment,
+  isAcceptableNativeReview,
+  latestAiReviewRequestMarker,
+  latestCodexNativeReviewResult,
 } from "./ai-review-helpers.mjs";
+import { readConfig } from "./shared.mjs";
 
 const token = process.env.GITHUB_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
-const eventPath = process.env.GITHUB_EVENT_PATH;
-const selectedAgent = (process.env.AI_REVIEW_AGENT || "codex")
+const prNumber = process.env.AI_REVIEW_PR_NUMBER;
+const headSha = process.env.AI_REVIEW_HEAD_SHA;
+const config = readConfig();
+const selectedAgent = (
+  process.env.AI_REVIEW_AGENT ||
+  config.defaultReviewAgent ||
+  "codex"
+)
   .trim()
   .toLowerCase();
-const explicitPrNumber = process.env.AI_REVIEW_PR_NUMBER;
-const maxWaitMs = Number(process.env.AI_REVIEW_WAIT_MS || 900000);
-const pollIntervalMs = Number(process.env.AI_REVIEW_POLL_MS || 15000);
-const triggerMode = (process.env.AI_REVIEW_TRIGGER_MODE || "comment")
+const triggerMode = (process.env.AI_REVIEW_TRIGGER_MODE || "skip")
   .trim()
   .toLowerCase();
-const triggeredAt = process.env.AI_REVIEW_TRIGGERED_AT;
-const outputPath = process.env.GITHUB_OUTPUT;
-const summaryPath = process.env.GITHUB_STEP_SUMMARY;
-const claudeReviewerLogins = new Set(["claude[bot]"]);
-const geminiReviewerLogins = new Set(["gemini-code-assist[bot]"]);
+const maxWaitMs = Number(process.env.AI_REVIEW_WAIT_MS || 30000);
+const initialPollMs = Number(process.env.AI_REVIEW_POLL_MS || 5000);
+const maxPollMs = Number(process.env.AI_REVIEW_MAX_POLL_MS || 10000);
+const debounceMs = Number(process.env.AI_REVIEW_DEBOUNCE_MS || 5000);
 
-if (!token) {
-  throw new Error("GITHUB_TOKEN is required");
-}
-
-if (!repository) {
-  throw new Error("GITHUB_REPOSITORY is required");
-}
-
-if (!eventPath) {
-  throw new Error("GITHUB_EVENT_PATH is required");
-}
-
-if (!["claude", "codex", "gemini"].includes(selectedAgent)) {
-  throw new Error(
-    `AI_REVIEW_AGENT must be one of "claude", "codex", or "gemini", received "${selectedAgent}"`,
+if (!token || !repository || !prNumber || !headSha) {
+  console.error(
+    "GITHUB_TOKEN, GITHUB_REPOSITORY, AI_REVIEW_PR_NUMBER, and AI_REVIEW_HEAD_SHA are required.",
   );
+  process.exit(1);
 }
 
-if (!["comment", "skip"].includes(triggerMode)) {
-  throw new Error(
-    `AI_REVIEW_TRIGGER_MODE must be one of "comment" or "skip", received "${triggerMode}"`,
-  );
+const supportedReviewAgents = new Set(
+  config.reviewAgents || ["codex", "gemini"],
+);
+
+if (!supportedReviewAgents.has(selectedAgent)) {
+  console.error(`Unsupported AI_REVIEW_AGENT value: ${selectedAgent}`);
+  process.exit(1);
+}
+
+if (!new Set(["skip", "comment"]).has(triggerMode)) {
+  console.error(`Unsupported AI_REVIEW_TRIGGER_MODE value: ${triggerMode}`);
+  process.exit(1);
 }
 
 const [owner, repo] = repository.split("/");
-const event = JSON.parse(readFileSync(eventPath, "utf8"));
 
-const setOutput = (name, value) => {
-  if (!outputPath) {
-    return;
-  }
-
-  appendFileSync(outputPath, `${name}=${String(value)}\n`);
-};
-
-const appendSummary = (lines) => {
-  if (!summaryPath) {
-    return;
-  }
-
-  appendFileSync(summaryPath, `${lines.join("\n")}\n`);
-};
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const apiFetch = async (path, init = {}) => {
+async function request(path, options = {}) {
   const response = await fetch(`https://api.github.com${path}`, {
-    ...init,
+    ...options,
     headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...(init.headers || {}),
+      authorization: `Bearer ${token}`,
+      accept: "application/vnd.github+json",
+      "x-github-api-version": "2022-11-28",
+      ...(options.headers || {}),
     },
   });
-
   if (!response.ok) {
-    const body = await response.text();
     throw new Error(
-      `${init.method || "GET"} ${path} failed: ${response.status} ${body}`,
+      `${response.status} ${response.statusText}: ${await response.text()}`,
     );
   }
-
-  return response;
-};
-
-const getPaginationPath = (linkHeader, rel) => {
-  const match = (linkHeader || "").match(
-    new RegExp(`<([^>]+)>;\\s*rel="${rel}"`),
-  );
-
-  return match ? new URL(match[1]).pathname + new URL(match[1]).search : "";
-};
-
-const listPaginated = async (path) => {
-  const items = [];
-  let nextPath = path;
-
-  while (nextPath) {
-    const response = await apiFetch(nextPath);
-    const data = await response.json();
-    items.push(...data);
-    nextPath = getPaginationPath(response.headers.get("link"), "next");
-  }
-
-  return items;
-};
-
-const listNewestPullReviews = async (path) => {
-  const firstResponse = await apiFetch(path);
-  const lastPath = getPaginationPath(firstResponse.headers.get("link"), "last");
-
-  if (!lastPath || lastPath === path) {
-    return firstResponse.json();
-  }
-
-  const lastResponse = await apiFetch(lastPath);
-  return lastResponse.json();
-};
-
-const request = async (path, init = {}) => {
-  const response = await apiFetch(path, init);
-
-  if (response.status === 204) {
-    return null;
-  }
-
+  if (response.status === 204) return null;
   return response.json();
-};
-
-const buildSinceQuery = (timestamp) =>
-  timestamp
-    ? `&since=${encodeURIComponent(new Date(timestamp).toISOString())}`
-    : "";
-
-const buildIssueCommentsPath = (sinceTimestamp) =>
-  `/repos/${owner}/${repo}/issues/${prNumber}/comments?per_page=100&sort=updated&direction=desc${buildSinceQuery(
-    sinceTimestamp,
-  )}`;
-
-// Review-scoped comments endpoint. Used when classifying a specific
-// COMMENTED review: the PR-wide comments endpoint filtered by
-// `since=submitted_at` can silently drop inline findings created before
-// the review's submitted_at timestamp, which would cause the gate to
-// pass when it should block.
-const buildReviewScopedCommentsPath = (reviewId) =>
-  `/repos/${owner}/${repo}/pulls/${prNumber}/reviews/${reviewId}/comments?per_page=100`;
-const buildIssueTimelinePath = () =>
-  `/repos/${owner}/${repo}/issues/${prNumber}/timeline?per_page=100`;
-
-const prNumber =
-  explicitPrNumber ||
-  event.pull_request?.number ||
-  (event.issue?.pull_request ? event.issue.number : "") ||
-  "";
-
-if (!prNumber) {
-  throw new Error(
-    "AI Review gate requires a pull request context or AI_REVIEW_PR_NUMBER",
-  );
 }
 
-const pull = await request(`/repos/${owner}/${repo}/pulls/${prNumber}`);
-const headSha = pull.head.sha;
-// Lower bound for "is this trigger comment still valid for the current
-// head?". Any keyword-match trigger older than this timestamp belongs
-// to a previous head SHA and must not dedupe the trigger for the new
-// head, otherwise the gate would skip posting a fresh trigger and wait
-// out its timeout on a review that never starts.
-const headCommit = await request(`/repos/${owner}/${repo}/commits/${headSha}`);
-const headCommitTime = new Date(
-  headCommit.commit?.committer?.date || headCommit.commit?.author?.date || 0,
-).getTime();
-const markerAgentLine = `AI_REVIEW_AGENT: ${selectedAgent}`;
-const markerShaLine = `AI_REVIEW_SHA: ${headSha}`;
-const metadataMarker = `<!-- ai-review-gate:agent=${selectedAgent};sha=${headSha} -->`;
-const claudeOutcomePrefix = "AI_REVIEW_OUTCOME:";
-
-const buildTriggerComment = () => {
-  if (selectedAgent === "codex") {
-    return [
-      "@codex review",
-      "",
-      `Please review PR #${prNumber} at head commit \`${headSha}\`.`,
-      "",
-      metadataMarker,
-    ].join("\n");
+async function listPaginated(path) {
+  const items = [];
+  const separator = path.includes("?") ? "&" : "?";
+  for (let page = 1; ; page += 1) {
+    const batch = await request(`${path}${separator}per_page=100&page=${page}`);
+    items.push(...batch);
+    if (batch.length < 100) return items;
   }
+}
 
-  if (selectedAgent === "gemini") {
-    return [
-      "/gemini review",
-      "",
-      `Please review PR #${prNumber} at head commit \`${headSha}\`.`,
-      "",
-      metadataMarker,
-    ].join("\n");
-  }
-
-  // Claude review is human-initiated only: claude-review.yml gates on
-  // author_association in (OWNER, MEMBER, COLLABORATOR), so any
-  // bot-authored @claude review once comment would be dropped and never
-  // dispatch the actual reviewer. ai-review.yml keeps Claude on
-  // trigger_mode=skip on every pull_request event and
-  // workflow_dispatch with inputs.trigger_mode=comment is not a
-  // supported entry point for Claude. Fail loudly here so a future
-  // misconfiguration surfaces as an explicit error instead of a
-  // silently ignored bot comment.
-  throw new Error(
-    `buildTriggerComment() refused: selectedAgent="${selectedAgent}" does not support bot-posted triggers. Claude review requires a human-authored @claude review once comment from a trusted account.`,
-  );
-};
-
-const triggerKeywords = {
-  codex: "@codex review",
-  gemini: "/gemini review",
-  claude: "@claude review once",
-};
-
-const ensureTriggerComment = async () => {
-  // Dedupe: skip posting a duplicate trigger when either
-  // (a) a gate-originated trigger comment for the current head SHA
-  //     already exists in the last 30 minutes (matched via the hidden
-  //     metadataMarker, which encodes both agent and headSha), or
-  // (b) a human author posted the bare backend trigger keyword
-  //     (e.g. `@codex review`, `/gemini review`, `@claude review once`)
-  //     in the same window. Case (b) covers trusted humans who already
-  //     triggered native review via ai-command-policy.yml so the gate
-  //     does not fan out a duplicate native review or add rate-limit
-  //     pressure.
-  //
-  // Only `user.type === "User"` accounts qualify for (b). Any bot
-  // (reviewer connectors, `github-actions[bot]`, policy-reply bots that
-  // quote the trigger phrase, etc.) is excluded so workflow-authored
-  // echoes of `@codex review` or `/gemini review` cannot short-circuit
-  // the dedupe and cause the gate to wait out the timeout instead of
-  // posting a real trigger. The keyword branch also requires the
-  // comment to be at least as new as the current head commit — an
-  // older human trigger belongs to a previous SHA and its review can
-  // no longer land against the new head.
-  const dedupeWindowMs = 30 * 60 * 1000;
-  const triggerKeyword = triggerKeywords[selectedAgent];
-  const recentComments = await listPaginated(
-    buildIssueCommentsPath(Date.now() - dedupeWindowMs),
-  );
-  const existing = recentComments.find((comment) => {
-    const body = comment.body || "";
-    if (body.includes(metadataMarker)) {
-      return true;
-    }
-    if (
-      triggerKeyword &&
-      body.includes(triggerKeyword) &&
-      comment.user?.type === "User" &&
-      new Date(comment.created_at || 0).getTime() >= headCommitTime
-    ) {
-      return true;
-    }
-    return false;
-  });
-
-  if (existing) {
-    console.log(
-      `Reusing existing trigger comment for ${selectedAgent} at ${headSha}: ${existing.html_url}`,
-    );
-    return existing;
-  }
-
+async function createComment(body) {
   return request(`/repos/${owner}/${repo}/issues/${prNumber}/comments`, {
     method: "POST",
-    body: JSON.stringify({ body: buildTriggerComment() }),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ body }),
   });
-};
-
-const matchesGeminiReview = (review) =>
-  review.commit_id === headSha &&
-  geminiReviewerLogins.has(review.user?.login || "");
-
-const extractClaudeOutcome = (body) => {
-  const match = body.match(/^AI_REVIEW_OUTCOME:\s*(pass|advisory|block)\s*$/im);
-  return match ? match[1].toLowerCase() : null;
-};
-
-const matchesClaudeComment = (comment) => {
-  const body = comment.body || "";
-  return (
-    claudeReviewerLogins.has(comment.user?.login || "") &&
-    body.includes("AI_REVIEW_AGENT: claude") &&
-    body.includes(markerShaLine) &&
-    extractClaudeOutcome(body) !== null
-  );
-};
-
-/**
- * Generic latest-item picker.
- * Filters items with matchFn, sorts descending by timestampFn, returns first or null.
- *
- * @param {object[]} items
- * @param {(item: object) => boolean} matchFn
- * @param {(item: object) => number} timestampFn
- * @returns {object|null}
- */
-const pickLatest = (items, matchFn, timestampFn) =>
-  items.filter(matchFn).sort((a, b) => timestampFn(b) - timestampFn(a))[0] ||
-  null;
-
-const reviewTimestamp = (r) => new Date(r.submitted_at || 0).getTime();
-const commentTimestamp = (c) =>
-  new Date(c.updated_at || c.created_at || 0).getTime();
-
-const pickLatestCodexReview = (reviews) =>
-  pickLatest(
-    reviews,
-    (r) => r.submitted_at && matchesCodexReview(r, headSha),
-    reviewTimestamp,
-  );
-
-const pickLatestGeminiReview = (reviews) =>
-  pickLatest(
-    reviews,
-    (r) => r.submitted_at && matchesGeminiReview(r),
-    reviewTimestamp,
-  );
-
-const pickLatestClaudeComment = (comments) =>
-  pickLatest(comments, matchesClaudeComment, commentTimestamp);
-
-// findLatestCurrentHead* had identical logic — aliases kept for call-site readability.
-const findLatestCurrentHeadCodexReview = pickLatestCodexReview;
-const findLatestCurrentHeadGeminiReview = pickLatestGeminiReview;
-const findLatestCurrentHeadClaudeComment = pickLatestClaudeComment;
-
-const extractCodexPriority = (body) => {
-  const match = body.match(/\bP([0-3])\b/i);
-  return match ? Number(match[1]) : null;
-};
-
-const classifyCodexReview = async (review) => {
-  if (review.state === "APPROVED") {
-    return {
-      outcome: "pass",
-      reason: "Codex approved the PR with no blocking findings.",
-      details: [],
-    };
-  }
-
-  if (review.state === "CHANGES_REQUESTED") {
-    return {
-      outcome: "fail",
-      reason: "Codex requested changes on the PR.",
-      details: [],
-    };
-  }
-
-  if (review.state !== "COMMENTED") {
-    return {
-      outcome: "pending",
-      reason: `Codex produced unsupported review state "${review.state}".`,
-      details: [],
-    };
-  }
-
-  const commentsForReview = await listPaginated(
-    buildReviewScopedCommentsPath(review.id),
-  );
-
-  if (commentsForReview.length === 0) {
-    return {
-      outcome: "pass",
-      reason: "Codex completed a comment review without inline findings.",
-      details: [],
-    };
-  }
-
-  const parsedPriorities = commentsForReview
-    .map((comment) => extractCodexPriority(comment.body || ""))
-    .filter((priority) => priority !== null);
-  const untaggedComments = commentsForReview.filter(
-    (comment) => extractCodexPriority(comment.body || "") === null,
-  );
-
-  if (untaggedComments.length > 0) {
-    return {
-      outcome: "fail",
-      reason:
-        "Codex submitted inline findings without recognized P0-P3 severity badges.",
-      details: untaggedComments.map((comment) => comment.html_url),
-    };
-  }
-
-  const highestPriority = Math.min(...parsedPriorities);
-
-  if (highestPriority <= 2) {
-    return {
-      outcome: "fail",
-      reason: `Codex reported blocking findings with highest severity P${highestPriority}.`,
-      details: commentsForReview.map((comment) => comment.html_url),
-    };
-  }
-
-  return {
-    outcome: "pass",
-    reason: "Codex reported advisory-only findings.",
-    details: commentsForReview.map((comment) => comment.html_url),
-  };
-};
-
-const extractGeminiSeverity = (body) => {
-  const altMatch = body.match(/!\[(critical|high|medium|low)\]/i);
-  if (altMatch) {
-    return altMatch[1].toLowerCase();
-  }
-
-  const wordMatch = body.match(/\b(critical|high|medium|low)\b/i);
-  if (wordMatch) {
-    return wordMatch[1].toLowerCase();
-  }
-
-  return null;
-};
-
-const classifyGeminiReview = async (review) => {
-  if (review.state === "APPROVED") {
-    return {
-      outcome: "pass",
-      reason: "Gemini approved the PR with no blocking findings.",
-      details: [],
-    };
-  }
-
-  if (review.state === "CHANGES_REQUESTED") {
-    return {
-      outcome: "fail",
-      reason: "Gemini requested changes on the PR.",
-      details: [],
-    };
-  }
-
-  if (review.state !== "COMMENTED") {
-    return {
-      outcome: "pending",
-      reason: `Gemini produced unsupported review state "${review.state}".`,
-      details: [],
-    };
-  }
-
-  const commentsForReview = await listPaginated(
-    buildReviewScopedCommentsPath(review.id),
-  );
-
-  if (commentsForReview.length === 0) {
-    return {
-      outcome: "pass",
-      reason: "Gemini completed a comment review without inline findings.",
-      details: [review.html_url],
-    };
-  }
-
-  const severities = commentsForReview
-    .map((comment) => extractGeminiSeverity(comment.body || ""))
-    .filter((severity) => severity !== null);
-  const untaggedComments = commentsForReview.filter(
-    (comment) => extractGeminiSeverity(comment.body || "") === null,
-  );
-
-  if (untaggedComments.length > 0) {
-    return {
-      outcome: "fail",
-      reason:
-        "Gemini submitted inline findings without recognized Critical/High/Medium/Low severity markers.",
-      details: untaggedComments.map((comment) => comment.html_url),
-    };
-  }
-
-  const priority = {
-    critical: 0,
-    high: 1,
-    medium: 2,
-    low: 3,
-  };
-
-  const highestSeverity = severities.reduce(
-    (best, current) => (priority[current] < priority[best] ? current : best),
-    "low",
-  );
-
-  if (priority[highestSeverity] <= 2) {
-    return {
-      outcome: "fail",
-      reason: `Gemini reported blocking findings with highest severity ${highestSeverity}.`,
-      details: commentsForReview.map((comment) => comment.html_url),
-    };
-  }
-
-  return {
-    outcome: "pass",
-    reason: "Gemini reported advisory-only findings.",
-    details: commentsForReview.map((comment) => comment.html_url),
-  };
-};
-
-const classifyClaudeComment = (comment) => {
-  const outcome = extractClaudeOutcome(comment.body || "");
-
-  switch (outcome) {
-    case "pass":
-      return {
-        outcome: "pass",
-        reason: "Claude reported no material findings.",
-        details: [comment.html_url],
-      };
-    case "advisory":
-      return {
-        outcome: "pass",
-        reason: "Claude reported advisory-only findings.",
-        details: [comment.html_url],
-      };
-    case "block":
-      return {
-        outcome: "fail",
-        reason: "Claude reported blocking findings.",
-        details: [comment.html_url],
-      };
-    default:
-      return {
-        outcome: "pending",
-        reason:
-          "Claude comment did not include a valid AI_REVIEW_OUTCOME marker.",
-        details: [comment.html_url],
-      };
-  }
-};
-
-const triggerComment =
-  triggerMode === "comment" ? await ensureTriggerComment() : null;
-const triggerTime = triggerComment
-  ? new Date(triggerComment.created_at).getTime()
-  : triggeredAt
-    ? new Date(triggeredAt).getTime()
-    : Date.now();
-const deadline = Date.now() + maxWaitMs;
-let codexTimelineWarning = "";
-let codexTimelineWarningLogged = false;
-let codexTimelineHeadPendingLogged = false;
-
-while (Date.now() < deadline) {
-  if (selectedAgent === "claude") {
-    const issueComments = await listPaginated(
-      buildIssueCommentsPath(triggerMode === "skip" ? 0 : triggerTime),
-    );
-    const recentComments = issueComments.filter(
-      (comment) =>
-        Math.max(
-          new Date(comment.created_at || 0).getTime(),
-          new Date(comment.updated_at || 0).getTime(),
-        ) >= triggerTime,
-    );
-    const candidateComments =
-      triggerMode === "skip" ? issueComments : recentComments;
-    const matchedComment =
-      pickLatestClaudeComment(candidateComments) ||
-      (triggerMode === "skip"
-        ? null
-        : findLatestCurrentHeadClaudeComment(issueComments));
-
-    if (matchedComment) {
-      const mapped = classifyClaudeComment(matchedComment);
-
-      if (mapped.outcome !== "pending") {
-        setOutput("review_agent", selectedAgent);
-        setOutput(
-          "review_state",
-          extractClaudeOutcome(matchedComment.body || ""),
-        );
-        setOutput("review_url", matchedComment.html_url);
-        setOutput("review_id", matchedComment.id);
-
-        appendSummary([
-          "## AI Review Gate",
-          "",
-          `- Selected reviewer: \`${selectedAgent}\``,
-          `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-          `- Matched reviewer comment: ${matchedComment.html_url}`,
-          `- Review state: \`${extractClaudeOutcome(matchedComment.body || "")}\``,
-          `- Result: ${mapped.reason}`,
-          ...(mapped.details?.length
-            ? [`- Evidence: ${mapped.details.join(", ")}`]
-            : []),
-        ]);
-
-        if (mapped.outcome === "fail") {
-          throw new Error(mapped.reason);
-        }
-
-        console.log(mapped.reason);
-        process.exit(0);
-      }
-    }
-  } else if (selectedAgent === "codex") {
-    const reviews = await listNewestPullReviews(
-      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews?per_page=100`,
-    );
-    const recentReviews = reviews.filter(
-      (review) => new Date(review.submitted_at || 0).getTime() >= triggerTime,
-    );
-    const candidateReviews = triggerMode === "skip" ? reviews : recentReviews;
-    const matchedReview =
-      pickLatestCodexReview(candidateReviews) ||
-      (triggerMode === "skip"
-        ? null
-        : findLatestCurrentHeadCodexReview(reviews));
-
-    if (matchedReview) {
-      const mapped = await classifyCodexReview(matchedReview);
-
-      if (mapped.outcome !== "pending") {
-        setOutput("review_agent", selectedAgent);
-        setOutput("review_state", matchedReview.state);
-        setOutput("review_url", matchedReview.html_url);
-        setOutput("review_id", matchedReview.id);
-
-        appendSummary([
-          "## AI Review Gate",
-          "",
-          `- Selected reviewer: \`${selectedAgent}\``,
-          `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-          `- Matched review: ${matchedReview.html_url}`,
-          `- Review state: \`${matchedReview.state}\``,
-          `- Result: ${mapped.reason}`,
-          ...(mapped.details?.length
-            ? [`- Evidence: ${mapped.details.join(", ")}`]
-            : []),
-        ]);
-
-        if (mapped.outcome === "fail") {
-          throw new Error(mapped.reason);
-        }
-
-        console.log(mapped.reason);
-        process.exit(0);
-      }
-    }
-
-    if (triggerMode === "skip") {
-      let timelineEvents = null;
-
-      try {
-        timelineEvents = await listPaginated(buildIssueTimelinePath());
-      } catch (error) {
-        codexTimelineWarning =
-          "Codex skip-mode could not read PR timeline, so summary/setup fallback is disabled until the timeline endpoint recovers.";
-        if (!codexTimelineWarningLogged) {
-          console.warn(
-            `${codexTimelineWarning} Continuing to poll for a formal review only. Root cause: ${error.message}`,
-          );
-          codexTimelineWarningLogged = true;
-        }
-      }
-
-      if (timelineEvents) {
-        const headActivationIndex = findLatestHeadActivationIndex(
-          timelineEvents,
-          headSha,
-        );
-
-        if (headActivationIndex < 0) {
-          if (!codexTimelineHeadPendingLogged) {
-            console.warn(
-              `Codex skip-mode is waiting for PR timeline to expose the current head SHA ${headSha} before it can trust summary/setup comments.`,
-            );
-            codexTimelineHeadPendingLogged = true;
-          }
-        } else {
-          codexTimelineHeadPendingLogged = false;
-          const matchedComment = pickAuthoritativeCodexSkipModeComment({
-            timelineEvents,
-            headSha,
-          });
-
-          if (matchedComment) {
-            const { comment, classification, reviewState } = matchedComment;
-
-            setOutput("review_agent", selectedAgent);
-            setOutput("review_state", reviewState);
-            setOutput("review_url", comment.html_url);
-            setOutput("review_id", comment.id);
-
-            appendSummary([
-              "## AI Review Gate",
-              "",
-              `- Selected reviewer: \`${selectedAgent}\``,
-              `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-              `- Matched reviewer comment: ${comment.html_url}`,
-              `- Review state: \`${reviewState}\``,
-              `- Result: ${classification.reason}`,
-              ...(classification.details?.length
-                ? [`- Evidence: ${classification.details.join(", ")}`]
-                : []),
-            ]);
-
-            if (classification.outcome === "fail") {
-              throw new Error(classification.reason);
-            }
-
-            console.log(classification.reason);
-            process.exit(0);
-          }
-        }
-      }
-    } else {
-      const issueComments = await listPaginated(
-        buildIssueCommentsPath(triggerTime),
-      );
-      const recentIssueComments = issueComments.filter(
-        (comment) => new Date(comment.created_at || 0).getTime() >= triggerTime,
-      );
-      const summaryComment =
-        recentIssueComments
-          .filter((comment) => matchesCodexSummaryComment(comment))
-          .sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime(),
-          )[0] || null;
-
-      if (summaryComment) {
-        const mapped = classifyCodexSummaryComment(summaryComment);
-
-        if (mapped.outcome !== "pending") {
-          setOutput("review_agent", selectedAgent);
-          setOutput("review_state", "COMMENTED_NO_FINDINGS");
-          setOutput("review_url", summaryComment.html_url);
-          setOutput("review_id", summaryComment.id);
-
-          appendSummary([
-            "## AI Review Gate",
-            "",
-            `- Selected reviewer: \`${selectedAgent}\``,
-            `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-            `- Matched reviewer comment: ${summaryComment.html_url}`,
-            "- Review state: `COMMENTED_NO_FINDINGS`",
-            `- Result: ${mapped.reason}`,
-            ...(mapped.details?.length
-              ? [`- Evidence: ${mapped.details.join(", ")}`]
-              : []),
-          ]);
-
-          console.log(mapped.reason);
-          process.exit(0);
-        }
-      }
-
-      const recentConnectorReply =
-        issueComments
-          .filter(
-            (comment) =>
-              codexReviewerLogins.has(comment.user?.login || "") &&
-              new Date(comment.created_at || 0).getTime() >= triggerTime,
-          )
-          .sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime(),
-          )
-          .map((comment) => ({
-            comment,
-            classification: classifyCodexSetupReply(comment),
-          }))
-          .find((entry) => entry.classification) || null;
-
-      if (recentConnectorReply) {
-        const { comment, classification } = recentConnectorReply;
-
-        setOutput("review_agent", selectedAgent);
-        setOutput("review_state", "SETUP_REQUIRED");
-        setOutput("review_url", comment.html_url);
-        setOutput("review_id", comment.id);
-
-        appendSummary([
-          "## AI Review Gate",
-          "",
-          `- Selected reviewer: \`${selectedAgent}\``,
-          `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-          `- Connector reply: ${comment.html_url}`,
-          "- Review state: `SETUP_REQUIRED`",
-          `- Result: ${classification.reason}`,
-        ]);
-
-        throw new Error(classification.reason);
-      }
-    }
-  } else {
-    const reviews = await listNewestPullReviews(
-      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews?per_page=100`,
-    );
-    const recentReviews = reviews.filter(
-      (review) => new Date(review.submitted_at || 0).getTime() >= triggerTime,
-    );
-    const candidateReviews = triggerMode === "skip" ? reviews : recentReviews;
-    const matchedReview =
-      pickLatestGeminiReview(candidateReviews) ||
-      (triggerMode === "skip"
-        ? null
-        : findLatestCurrentHeadGeminiReview(reviews));
-
-    if (matchedReview) {
-      const mapped = await classifyGeminiReview(matchedReview);
-
-      if (mapped.outcome !== "pending") {
-        setOutput("review_agent", selectedAgent);
-        setOutput("review_state", matchedReview.state);
-        setOutput("review_url", matchedReview.html_url);
-        setOutput("review_id", matchedReview.id);
-
-        appendSummary([
-          "## AI Review Gate",
-          "",
-          `- Selected reviewer: \`${selectedAgent}\``,
-          `- Trigger source: ${
-            triggerComment
-              ? triggerComment.html_url
-              : "inline native workflow invocation"
-          }`,
-          `- Matched review: ${matchedReview.html_url}`,
-          `- Review state: \`${matchedReview.state}\``,
-          `- Result: ${mapped.reason}`,
-          ...(mapped.details?.length
-            ? [`- Evidence: ${mapped.details.join(", ")}`]
-            : []),
-        ]);
-
-        if (mapped.outcome === "fail") {
-          throw new Error(mapped.reason);
-        }
-
-        console.log(mapped.reason);
-        process.exit(0);
-      }
-    }
-  }
-
-  await sleep(pollIntervalMs);
 }
 
-appendSummary([
-  "## AI Review Gate",
-  "",
-  `- Selected reviewer: \`${selectedAgent}\``,
-  `- Trigger source: ${triggerComment ? triggerComment.html_url : "inline native workflow invocation"}`,
-  `- Head SHA: \`${headSha}\``,
-  ...(codexTimelineWarning ? [`- Warning: ${codexTimelineWarning}`] : []),
-  "- Result: no valid selected-reviewer output was detected before the timeout.",
-]);
+async function fetchPull() {
+  return request(`/repos/${owner}/${repo}/pulls/${prNumber}`);
+}
 
-throw new Error(
-  `AI Review gate timed out: PR #${prNumber} (SHA: ${headSha}) did not receive output from ${selectedAgent} within ${maxWaitMs}ms.`,
+async function currentHeadMatches() {
+  const pull = await fetchPull();
+  return pull.head?.sha === headSha;
+}
+
+async function waitForQuietHead() {
+  if (!Number.isFinite(debounceMs) || debounceMs <= 0) return true;
+  await new Promise((resolve) => setTimeout(resolve, debounceMs));
+  return currentHeadMatches();
+}
+
+async function maybePostTriggerComment() {
+  if (triggerMode !== "comment") return;
+  const triggers = {
+    codex: "@codex review",
+    claude: "@claude review once",
+    gemini: "/gemini review",
+  };
+  const triggerComment = await createComment(
+    [
+      triggers[selectedAgent],
+      "",
+      "_Administrative trigger posted by the AI Review workflow. Prefer a trusted human-authored trigger if the native backend ignores bot comments._",
+    ].join("\n"),
+  );
+  const requestedAt = triggerComment?.created_at || new Date().toISOString();
+  await createComment(
+    createAiReviewRequestMarkerBody({
+      agent: selectedAgent,
+      headSha,
+      requestId: `workflow-${triggerComment?.id || Date.now()}-${headSha.slice(0, 12)}`,
+      sourceCommentId: String(triggerComment?.id || ""),
+      sourceCommentCreatedAt: triggerComment?.created_at,
+      requestedAt,
+    }),
+  );
+}
+
+function isAfterRequest(value, requestMarker) {
+  const valueTime = Date.parse(value || "");
+  const requestedAt = Date.parse(
+    requestMarker?.sourceCommentCreatedAt ||
+      requestMarker?.requestedAt ||
+      requestMarker?.commentCreatedAt ||
+      "",
+  );
+  return (
+    Number.isFinite(valueTime) &&
+    Number.isFinite(requestedAt) &&
+    valueTime >= requestedAt
+  );
+}
+
+async function fetchEvidence() {
+  if (!(await currentHeadMatches())) return "stale";
+
+  const comments = await listPaginated(
+    `/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+  );
+  const requestMarker = latestAiReviewRequestMarker(
+    comments,
+    selectedAgent,
+    headSha,
+  );
+  if (!requestMarker) return "missing_marker";
+
+  if (selectedAgent === "claude") {
+    return comments.some(
+      (comment) =>
+        isAfterRequest(comment.created_at, requestMarker) &&
+        isAcceptableClaudeComment(comment, headSha, config),
+    )
+      ? "pass"
+      : "pending";
+  }
+
+  const reviews = await listPaginated(
+    `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+  );
+  if (selectedAgent === "codex") {
+    const reviewComments = await listPaginated(
+      `/repos/${owner}/${repo}/pulls/${prNumber}/comments`,
+    );
+    const reviewsAfterRequest = reviews.filter((review) =>
+      isAfterRequest(review.submitted_at, requestMarker),
+    );
+    const latestCodexResult = latestCodexNativeReviewResult(
+      reviewsAfterRequest,
+      reviewComments,
+      headSha,
+      config,
+    );
+    if (latestCodexResult === "pass") return "pass";
+    if (latestCodexResult === "fail") return "fail";
+
+    const timeline = await listPaginated(
+      `/repos/${owner}/${repo}/issues/${prNumber}/timeline`,
+    );
+    const triggerAt =
+      requestMarker.sourceCommentCreatedAt ||
+      requestMarker.requestedAt ||
+      requestMarker.commentCreatedAt;
+    const summaryAccepted = comments.some((comment) => {
+      if (
+        !isAcceptableCodexSummaryComment(
+          comment,
+          headSha,
+          requestMarker,
+          config,
+        )
+      )
+        return false;
+      if (
+        hasHeadUpdateBetweenTimestamps(timeline, triggerAt, comment.created_at)
+      ) {
+        console.warn(
+          `AI Review gate rejected Codex summary ${comment.id}: head moved between trigger ${triggerAt} and summary ${comment.created_at}.`,
+        );
+        return false;
+      }
+      return true;
+    });
+    return summaryAccepted ? "pass" : "pending";
+  }
+
+  if (
+    reviews.some(
+      (review) =>
+        isAfterRequest(review.submitted_at, requestMarker) &&
+        isAcceptableNativeReview(review, selectedAgent, headSha, config),
+    )
+  ) {
+    return "pass";
+  }
+
+  return "pending";
+}
+
+await maybePostTriggerComment();
+
+if (!(await waitForQuietHead())) {
+  console.log(
+    `AI Review gate skipped stale run for ${headSha}; PR head changed during debounce.`,
+  );
+  process.exit(0);
+}
+
+const started = Date.now();
+let outcome = "pending";
+let lastError = null;
+let pollMs = initialPollMs;
+
+while (Date.now() - started <= maxWaitMs) {
+  try {
+    outcome = await fetchEvidence();
+    if (outcome !== "pending") break;
+  } catch (error) {
+    lastError = error;
+  }
+  const elapsed = Date.now() - started;
+  const remaining = maxWaitMs - elapsed;
+  if (remaining <= 0) break;
+  await new Promise((resolve) =>
+    setTimeout(resolve, Math.min(pollMs, remaining)),
+  );
+  pollMs = Math.min(pollMs * 2, maxPollMs);
+}
+
+if (outcome === "stale") {
+  console.log(
+    `AI Review gate skipped stale run for ${headSha}; PR head moved.`,
+  );
+  process.exit(0);
+}
+
+if (outcome === "pass") {
+  console.log(`AI Review gate passed for ${selectedAgent} on ${headSha}.`);
+  process.exit(0);
+}
+
+const detail = lastError ? ` Last API error: ${lastError.message}` : "";
+const reviewHint =
+  selectedAgent === "claude"
+    ? "A trusted human must request Claude review, then Claude must post AI_REVIEW_OUTCOME: pass for the current head SHA."
+    : selectedAgent === "codex"
+      ? "Codex must provide current-head review evidence after a trusted AI review request marker."
+      : `A trusted human must request ${selectedAgent} review, then ${selectedAgent} must provide an acceptable native review for the current head SHA.`;
+
+const triggerCommands = {
+  codex: "@codex review",
+  claude: "@claude review once",
+  gemini: "/gemini review",
+};
+const actionHint =
+  outcome === "missing_marker"
+    ? `Action: a trusted reviewer (OWNER/MEMBER/COLLABORATOR) should post '${triggerCommands[selectedAgent]}' on this PR to record the current-head review request marker.`
+    : "";
+
+const failureComment = [
+  "AI Review gate failed.",
+  "",
+  `- agent: ${selectedAgent}`,
+  `- head SHA: ${headSha}`,
+  `- expected: ${reviewHint}`,
+  actionHint ? `- next: ${actionHint}` : "",
+  detail ? `- detail: ${detail}` : "",
+]
+  .filter(Boolean)
+  .join("\n");
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${failureComment}\n`);
+}
+
+if (outcome === "fail") {
+  try {
+    await createComment(failureComment);
+  } catch (error) {
+    console.warn(
+      `Could not post AI Review gate failure comment: ${error.message}`,
+    );
+  }
+}
+
+const outcomeDetail =
+  outcome === "missing_marker"
+    ? " Missing trusted current-head AI review request marker."
+    : outcome === "pending"
+      ? " Review evidence is still pending; rerun will be requested by the next trusted review event."
+      : "";
+
+console.error(
+  `AI Review gate failed for ${selectedAgent} on ${headSha}.${outcomeDetail}${detail}`,
 );
+process.exit(1);

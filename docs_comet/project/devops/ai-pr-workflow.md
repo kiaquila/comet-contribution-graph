@@ -46,13 +46,14 @@ Summary (details in `review-contract.md` and `ai-orchestration-protocol.md`):
 - **Human trigger required for Codex on EVERY review**, including the first
   review on PR open — Codex does not auto-review. (Only Gemini Code Assist
   auto-reviews on `opened` / `ready_for_review`.) The gate runs with
-  `trigger_mode=skip` on `pull_request` events and polls for an existing
-  same-head review, so without a human trigger it waits until timeout.
+  `trigger_mode=skip` on `pull_request` events and fails fast when a trusted
+  current-head review-request marker or review evidence is missing.
 - After a new push on an already-open PR, a human must post the native
   trigger comment again (`@codex review`, `/gemini review`, or
   `@claude review once`), or run `pnpm run review:switch -- --to <agent>`.
-  Bot-posted triggers are rejected by all three backends — see
-  `review-trigger-automation.md`.
+  Trusted trigger and trusted review-evidence events rerun the `AI Review`
+  check for the current head. Bot-posted triggers are rejected by all three
+  backends — see `review-trigger-automation.md`.
 
 ## Merge-Ready Definition
 
