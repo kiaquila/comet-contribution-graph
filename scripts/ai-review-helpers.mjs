@@ -292,9 +292,14 @@ export function classifyGeminiNativeReview(
       comment.pull_request_review_id === review.id &&
       isTrustedReviewLogin(comment.user?.login, "gemini", config),
   );
+  // Mirror the Codex inline-severity contract: any trusted inline finding
+  // that does not declare a recognized severity is treated as blocking so
+  // an untagged or reformatted Gemini comment cannot satisfy AI Review.
   if (
-    inlineFromGemini.some((comment) =>
-      containsBlockingSeverity(comment.body, "gemini"),
+    inlineFromGemini.some(
+      (comment) =>
+        containsBlockingSeverity(comment.body, "gemini") ||
+        !/\b(critical|high|medium|low)\b/i.test(comment.body || ""),
     )
   ) {
     return "fail";

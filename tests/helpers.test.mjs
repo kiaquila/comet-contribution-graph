@@ -648,6 +648,21 @@ test("Gemini native review classification inspects inline severities", () => {
     "pass",
   );
 
+  assert.equal(
+    classifyGeminiNativeReview(
+      review,
+      [
+        {
+          pull_request_review_id: 42,
+          body: "Found something here, please double-check.",
+          user: { login: "gemini-code-assist[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
   assert.equal(classifyGeminiNativeReview(review, [], "different-head"), null);
 });
 

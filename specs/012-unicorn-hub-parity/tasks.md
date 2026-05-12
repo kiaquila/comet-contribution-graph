@@ -40,6 +40,12 @@
       marker-based generic acceptor; also tighten `isAcceptableNativeReview`
       for Gemini with the same submitted-state allow-list for defense in
       depth; add a helpers test covering Gemini state rejection.
+- [x] T016 Review iteration 5: address Codex P2 on `ai-review-helpers.mjs:303`
+      by mirroring the Codex inline-severity contract on the Gemini path —
+      any trusted inline finding that does not declare a recognized severity
+      (`critical`/`high`/`medium`/`low`) is treated as blocking, so untagged
+      or reformatted Gemini comments cannot satisfy `AI Review`; add a
+      helpers test covering an untagged trusted inline comment.
 
 ## Process Memory
 
