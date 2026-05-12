@@ -400,6 +400,41 @@ test("Codex commented reviews are classified by inline priorities", () => {
     ),
     "fail",
   );
+
+  assert.equal(
+    classifyCodexNativeReview(
+      { ...review, state: "APPROVED" },
+      [
+        {
+          pull_request_review_id: 123,
+          body: "![P1 Badge] blocker",
+          user: { login: "chatgpt-codex-connector[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyCodexNativeReview(
+      { ...review, state: "APPROVED" },
+      [
+        {
+          pull_request_review_id: 123,
+          body: "looks good, no severity tag",
+          user: { login: "chatgpt-codex-connector[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyCodexNativeReview({ ...review, state: "APPROVED" }, [], "abc"),
+    "pass",
+  );
   assert.equal(
     classifyCodexNativeReview(
       review,

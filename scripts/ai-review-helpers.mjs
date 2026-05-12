@@ -225,9 +225,10 @@ export function classifyCodexNativeReview(
   if (!isTrustedReviewLogin(login, "codex", config)) return null;
   if (containsBlockingSeverity(review.body, "codex")) return "fail";
 
-  if (review.state === "APPROVED") return "pass";
   if (review.state === "CHANGES_REQUESTED") return "fail";
-  if (review.state !== "COMMENTED") return null;
+  // Inspect inline severities for any submitted-acceptance state so that an
+  // `APPROVED` review with inline P0-P2 or untagged findings still fails.
+  if (!["APPROVED", "COMMENTED"].includes(review.state)) return null;
 
   const commentsForReview = reviewComments.filter(
     (comment) =>

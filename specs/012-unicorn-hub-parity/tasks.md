@@ -46,6 +46,12 @@
       (`critical`/`high`/`medium`/`low`) is treated as blocking, so untagged
       or reformatted Gemini comments cannot satisfy `AI Review`; add a
       helpers test covering an untagged trusted inline comment.
+- [x] T017 Review iteration 6: address Codex P2 on `ai-review-helpers.mjs:228`
+      by reordering `classifyCodexNativeReview` so inline-priority checks
+      apply to both `APPROVED` and `COMMENTED` Codex reviews — an `APPROVED`
+      review with inline `[P0]`-`[P2]` or untagged findings now classifies
+      as `fail`; add helpers tests covering approved-with-inline-blocker,
+      approved-with-untagged, and approved-with-no-inline cases.
 
 ## Process Memory
 
