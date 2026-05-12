@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   classifyCodexNativeReview,
+  classifyGeminiNativeReview,
   containsBlockingSeverity,
   createAiReviewRequestMarkerBody,
   extractCodexPriority,
@@ -15,6 +16,7 @@ import {
   isAcceptableNativeReview,
   latestAiReviewRequestMarker,
   latestCodexNativeReviewResult,
+  latestGeminiNativeReviewResult,
   isTrustedReviewLogin,
   isTrustedAssociation,
 } from "../scripts/ai-review-helpers.mjs";
@@ -529,6 +531,118 @@ test("Gemini auto-reviews are acceptable on current head without a marker", () =
       "abc",
     ),
     false,
+  );
+});
+
+test("Gemini native review classification inspects inline severities", () => {
+  const review = {
+    id: 42,
+    commit_id: "abc",
+    state: "COMMENTED",
+    body: "Looks good to me.",
+    user: { login: "gemini-code-assist[bot]" },
+  };
+
+  assert.equal(classifyGeminiNativeReview(review, [], "abc"), "pass");
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      review,
+      [
+        {
+          pull_request_review_id: 42,
+          body: "Severity: High — null pointer here.",
+          user: { login: "gemini-code-assist[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      review,
+      [
+        {
+          pull_request_review_id: 42,
+          body: "Severity: Low — small nit.",
+          user: { login: "gemini-code-assist[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "pass",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      { ...review, state: "CHANGES_REQUESTED" },
+      [],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      review,
+      [
+        {
+          pull_request_review_id: 42,
+          body: "Severity: Critical — by an outsider.",
+          user: { login: "gemini-fan-99" },
+        },
+      ],
+      "abc",
+    ),
+    "pass",
+  );
+
+  assert.equal(classifyGeminiNativeReview(review, [], "different-head"), null);
+});
+
+test("latest Gemini native review result wins for a head", () => {
+  const olderPass = {
+    id: 1,
+    commit_id: "abc",
+    state: "COMMENTED",
+    body: "Looks good to me.",
+    submitted_at: "2026-01-01T00:00:00Z",
+    user: { login: "gemini-code-assist[bot]" },
+  };
+  const newerFail = {
+    id: 2,
+    commit_id: "abc",
+    state: "COMMENTED",
+    body: "Looks good to me.",
+    submitted_at: "2026-01-01T00:01:00Z",
+    user: { login: "gemini-code-assist[bot]" },
+  };
+
+  assert.equal(
+    latestGeminiNativeReviewResult(
+      [olderPass, newerFail],
+      [
+        {
+          pull_request_review_id: 2,
+          body: "Severity: Medium — must fix.",
+          user: { login: "gemini-code-assist[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    latestGeminiNativeReviewResult([newerFail, olderPass], [], "abc"),
+    "pass",
+  );
+
+  assert.equal(
+    latestGeminiNativeReviewResult([], [], "abc"),
+    null,
   );
 });
 

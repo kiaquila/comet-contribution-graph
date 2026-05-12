@@ -23,6 +23,11 @@
 - [x] T012 Review iteration 1: address Codex P2 on `ai-review-gate.mjs:162` by
       letting Gemini auto-reviews pass without a marker; add helpers test for
       acceptable Gemini native review.
+- [x] T013 Review iteration 2: address Codex P1 on `ai-review-helpers.mjs:289`
+      by adding `classifyGeminiNativeReview` / `latestGeminiNativeReviewResult`
+      that inspect inline review comments for blocking severities; wire the
+      gate to fetch `/pulls/{n}/comments` alongside reviews; add helpers tests
+      covering inline severities and latest-review semantics.
 
 ## Process Memory
 

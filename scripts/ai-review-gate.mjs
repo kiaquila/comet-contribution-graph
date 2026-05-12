@@ -8,6 +8,7 @@ import {
   isAcceptableNativeReview,
   latestAiReviewRequestMarker,
   latestCodexNativeReviewResult,
+  latestGeminiNativeReviewResult,
 } from "./ai-review-helpers.mjs";
 import { readConfig } from "./shared.mjs";
 
@@ -154,18 +155,21 @@ async function fetchEvidence() {
   if (selectedAgent === "gemini") {
     // Gemini Code Assist auto-reviews `opened`/`ready_for_review` events
     // without a human trigger, so the workflow forces `trigger_mode=skip`
-    // and no marker is written. Accept any acceptable native review on the
-    // current head before falling back to the marker-gated path.
-    const geminiReviews = await listPaginated(
-      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+    // and no marker is written. Classify the latest current-head Gemini
+    // review by both top-level body and inline review comments so blocking
+    // severities posted only in the inline thread are not silently passed.
+    const [geminiReviews, geminiReviewComments] = await Promise.all([
+      listPaginated(`/repos/${owner}/${repo}/pulls/${prNumber}/reviews`),
+      listPaginated(`/repos/${owner}/${repo}/pulls/${prNumber}/comments`),
+    ]);
+    const geminiResult = latestGeminiNativeReviewResult(
+      geminiReviews,
+      geminiReviewComments,
+      headSha,
+      config,
     );
-    if (
-      geminiReviews.some((review) =>
-        isAcceptableNativeReview(review, "gemini", headSha, config),
-      )
-    ) {
-      return "pass";
-    }
+    if (geminiResult === "pass") return "pass";
+    if (geminiResult === "fail") return "fail";
   }
 
   const comments = await listPaginated(
