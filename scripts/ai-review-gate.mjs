@@ -158,6 +158,8 @@ async function fetchEvidence() {
     // and no marker is written. Classify the latest current-head Gemini
     // review by both top-level body and inline review comments so blocking
     // severities posted only in the inline thread are not silently passed.
+    // Gemini stays on this dedicated path; we never fall through to the
+    // generic marker-based fallback below.
     const [geminiReviews, geminiReviewComments] = await Promise.all([
       listPaginated(`/repos/${owner}/${repo}/pulls/${prNumber}/reviews`),
       listPaginated(`/repos/${owner}/${repo}/pulls/${prNumber}/comments`),
@@ -170,6 +172,7 @@ async function fetchEvidence() {
     );
     if (geminiResult === "pass") return "pass";
     if (geminiResult === "fail") return "fail";
+    return "pending";
   }
 
   const comments = await listPaginated(

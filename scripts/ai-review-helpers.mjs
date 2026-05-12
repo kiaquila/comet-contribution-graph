@@ -346,6 +346,7 @@ export function isAcceptableNativeReview(review, agent, headSha, config = {}) {
   if (agent === "gemini") {
     return (
       isTrustedReviewLogin(login, agent, config) &&
+      ["APPROVED", "COMMENTED"].includes(review.state) &&
       !containsBlockingSeverity(body, agent)
     );
   }

@@ -34,6 +34,12 @@
       pending reviews no longer fall through to a pass; restore Prettier
       formatting on `tests/helpers.test.mjs` that broke `baseline-checks`
       in the previous push; add helpers tests covering `DISMISSED`/`PENDING`.
+- [x] T015 Review iteration 4: address Codex P2 on `ai-review-gate.mjs:248`
+      by terminating the Gemini path in `fetchEvidence` (return `pending`
+      when classification yields `null`) so it cannot fall through to the
+      marker-based generic acceptor; also tighten `isAcceptableNativeReview`
+      for Gemini with the same submitted-state allow-list for defense in
+      depth; add a helpers test covering Gemini state rejection.
 
 ## Process Memory
 

@@ -496,6 +496,45 @@ test("review bot logins require exact trusted matches", () => {
   );
 });
 
+test("Gemini native reviews reject dismissed and pending states", () => {
+  const review = {
+    commit_id: "abc",
+    state: "APPROVED",
+    body: "Looks good to me.",
+    user: { login: "gemini-code-assist[bot]" },
+  };
+
+  assert.equal(isAcceptableNativeReview(review, "gemini", "abc"), true);
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, state: "COMMENTED" },
+      "gemini",
+      "abc",
+    ),
+    true,
+  );
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, state: "DISMISSED" },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+  assert.equal(
+    isAcceptableNativeReview({ ...review, state: "PENDING" }, "gemini", "abc"),
+    false,
+  );
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, state: "CHANGES_REQUESTED" },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+});
+
 test("Gemini auto-reviews are acceptable on current head without a marker", () => {
   const review = {
     commit_id: "abc",
