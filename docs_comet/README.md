@@ -20,6 +20,7 @@
 - `project/devops/ai-pr-workflow.md` — PR gates and merge rules.
 - `project/devops/review-contract.md` — what each backend produces; severity rules.
 - `project/devops/review-trigger-automation.md` — bot-trigger rejection (Tier 1 active; design for Tier 2/3 in ADR).
+- `project/devops/local-preflight.md` — local verification command and config-driven gate policy.
 - `project/devops/delivery-playbook.md` — preview validation and production smoke.
 - `project/devops/vercel-cd.md` — Vercel deploy contract (temporary preview infra for prototype phase).
 - `project/devops/github-action-target.md` — future GitHub Action deliverable spec and open questions.

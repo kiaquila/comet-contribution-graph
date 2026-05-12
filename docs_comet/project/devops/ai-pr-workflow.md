@@ -21,6 +21,8 @@ This doc covers PR-specific gates. The 10-step Standard Feature Loop lives in `.
 - Local product edits in the main checkout do not count as completed work.
 - If the selected implementation agent path is unavailable, stop and report the
   blocker instead of bypassing the loop.
+- Before pushing, run `pnpm run preflight`; it checks working-tree feature
+  memory before replaying the repository CI chain locally.
 - A PR is not done while required checks are queued, running, or red.
 
 ## Review Contract
@@ -55,6 +57,7 @@ The current PR head SHA is merge-ready only when:
 ## Related Docs
 
 - `docs_comet/project/devops/ai-orchestration-protocol.md`
+- `docs_comet/project/devops/local-preflight.md`
 - `docs_comet/project/devops/review-trigger-automation.md`
 - `docs_comet/project/devops/vercel-cd.md`
 - `docs_comet/project/devops/delivery-playbook.md`

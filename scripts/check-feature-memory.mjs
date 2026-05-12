@@ -3,11 +3,14 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { findRepoRoot, parseArgs, pathMatches, readConfig } from "./shared.mjs";
 
-const args = process.argv.slice(2);
-const inspectWorktree = args.includes("--worktree");
-const filteredArgs = args.filter((arg) => arg !== "--worktree");
-const repoRoot = resolve(process.cwd());
+const args = parseArgs();
+const inspectWorktree = Boolean(args.worktree);
+const repoRoot = resolve(args.target || findRepoRoot());
+const config = readConfig(repoRoot);
+const positional = args._ || [];
+const specsDir = config.specsDir || "specs";
 
 const git = (args) =>
   execFileSync("git", args, {
@@ -28,13 +31,14 @@ const hasRef = (ref) => {
 };
 
 const [
-  baseRefInput = process.env.GITHUB_BASE_REF || "origin/main",
+  baseRefInput = process.env.GITHUB_BASE_REF ||
+    `origin/${config.defaultBaseBranch || "main"}`,
   headRef = "HEAD",
-] = filteredArgs;
+] = positional;
 
 const preferredBaseRef = process.env.GITHUB_BASE_REF
   ? `origin/${process.env.GITHUB_BASE_REF}`
-  : "origin/main";
+  : `origin/${config.defaultBaseBranch || "main"}`;
 const baseRef = hasRef(baseRefInput)
   ? baseRefInput
   : hasRef(preferredBaseRef)
@@ -43,41 +47,49 @@ const baseRef = hasRef(baseRefInput)
       ? "origin/main"
       : "HEAD~1";
 
-const diffArgs = inspectWorktree
-  ? ["diff", "--name-only", "HEAD"]
-  : ["diff", "--name-only", `${baseRef}...${headRef}`];
+const splitFiles = (value) =>
+  value
+    .split(/\r?\n/)
+    .map((file) => file.trim())
+    .filter(Boolean);
 
-const changedFiles = git(diffArgs)
-  .split(/\r?\n/)
-  .map((file) => file.trim())
-  .filter(Boolean);
+const changedFiles = inspectWorktree
+  ? [
+      ...new Set([
+        ...splitFiles(git(["diff", "--name-only", "HEAD"])),
+        ...splitFiles(git(["ls-files", "--others", "--exclude-standard"])),
+      ]),
+    ]
+  : splitFiles(git(["diff", "--name-only", `${baseRef}...${headRef}`]));
 
-// Build-contract and repository-owned orchestration changes should participate
-// in the same feature-memory rule as UI code.
-const isProductPath = (file) =>
-  file === "package.json" ||
-  file === "pnpm-lock.yaml" ||
-  file === "pnpm-workspace.yaml" ||
-  file === "vercel.json" ||
-  file === ".htmlvalidate.json" ||
-  file === "action.yml" ||
-  file.startsWith(".github/workflows/") ||
-  file.startsWith("scripts/") ||
-  file.startsWith("prototypes/") ||
-  file.startsWith("src/") ||
-  file.startsWith("app/") ||
-  file.startsWith("public/") ||
-  file.startsWith("assets/");
+const defaultProductPaths = [
+  ".github/workflows/",
+  ".htmlvalidate.json",
+  "action.yml",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "prototypes/",
+  "scripts/",
+  "src/",
+  "app/",
+  "public/",
+  "assets/",
+  "vercel.json",
+];
+const productPaths = config.productPaths || defaultProductPaths;
+const isProductPath = (file) => pathMatches(file, productPaths);
 
 if (!changedFiles.some(isProductPath)) {
   console.log("No product paths changed; feature-memory gate passes.");
   process.exit(0);
 }
 
+const escapedSpecsDir = specsDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const featureIds = new Set();
 
 for (const file of changedFiles) {
-  const match = file.match(/^specs\/([^/]+)\//);
+  const match = file.match(new RegExp(`^${escapedSpecsDir}/([^/]+)/`));
   if (!match) {
     continue;
   }
@@ -86,13 +98,9 @@ for (const file of changedFiles) {
 }
 
 // In CI / pre-push the script runs from a checkout of the trusted base
-// branch (see specs/011-pipeline-gate-trusted-base), so `existsSync`
-// against the working tree would miss specs added in the PR head. We
-// probe the PR head ref via `git cat-file -e <ref>:<path>` instead —
-// it is a non-executing existence check that does not run any hooks
-// or filters from the PR's tree. The `--worktree` mode keeps the
-// filesystem probe because it is meant to validate uncommitted local
-// changes that have no ref to interrogate.
+// branch (see specs/011-pipeline-gate-trusted-base), so filesystem
+// probes would miss specs added in the PR head. The ref path uses
+// git cat-file, which checks tree existence without executing PR code.
 const hasFileAtRef = (ref, path) => {
   try {
     execFileSync("git", ["cat-file", "-e", `${ref}:${path}`], {
@@ -108,16 +116,16 @@ const hasFileAtRef = (ref, path) => {
 const hasCompleteFeatureMemory = (featureId) => {
   if (inspectWorktree) {
     return (
-      existsSync(resolve(repoRoot, "specs", featureId, "spec.md")) &&
-      existsSync(resolve(repoRoot, "specs", featureId, "plan.md")) &&
-      existsSync(resolve(repoRoot, "specs", featureId, "tasks.md"))
+      existsSync(resolve(repoRoot, specsDir, featureId, "spec.md")) &&
+      existsSync(resolve(repoRoot, specsDir, featureId, "plan.md")) &&
+      existsSync(resolve(repoRoot, specsDir, featureId, "tasks.md"))
     );
   }
 
   return (
-    hasFileAtRef(headRef, `specs/${featureId}/spec.md`) &&
-    hasFileAtRef(headRef, `specs/${featureId}/plan.md`) &&
-    hasFileAtRef(headRef, `specs/${featureId}/tasks.md`)
+    hasFileAtRef(headRef, `${specsDir}/${featureId}/spec.md`) &&
+    hasFileAtRef(headRef, `${specsDir}/${featureId}/plan.md`) &&
+    hasFileAtRef(headRef, `${specsDir}/${featureId}/tasks.md`)
   );
 };
 
@@ -125,7 +133,7 @@ const validFeature = [...featureIds].find(hasCompleteFeatureMemory);
 
 if (validFeature) {
   console.log(
-    `Feature-memory gate passed via specs/${validFeature}/{spec,plan,tasks}.md`,
+    `Feature-memory gate passed via ${specsDir}/${validFeature}/{spec,plan,tasks}.md`,
   );
   process.exit(0);
 }
@@ -134,7 +142,7 @@ console.error(
   "Product paths changed without a complete feature-memory update.",
 );
 console.error(
-  "Touch one specs/<feature-id>/ folder with spec.md, plan.md, and tasks.md in the same PR.",
+  `Touch one ${specsDir}/<feature-id> folder with spec.md, plan.md, and tasks.md in the same PR.`,
 );
 
 if (featureIds.size > 0) {

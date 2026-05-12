@@ -9,7 +9,7 @@
 ## Implementation
 
 - [x] T003 Fix OSV `fast-uri` finding and update stale repo memory.
-- [ ] T004 Add config-driven repository control-plane helpers and preflight.
+- [x] T004 Add config-driven repository control-plane helpers and preflight.
 - [ ] T005 Add SENAR templates, PR checklist, and docs.
 - [ ] T006 Port event-driven AI Review marker/rerun flow.
 - [ ] T007 Add branch-protection helper and docs.
@@ -35,6 +35,9 @@
 - Pin `fast-uri` through `pnpm.overrides` instead of replacing `html-validate`;
   this clears the vulnerable transitive version without changing validator
   behavior.
+- Keep `check-static-baseline.mjs` in place for now as a historical/product
+  helper, but route `pnpm run check:repo` to the config-aware
+  `check-repo-baseline.mjs`.
 
 ### Known Issues
 
