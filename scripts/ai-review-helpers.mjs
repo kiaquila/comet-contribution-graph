@@ -223,12 +223,14 @@ export function classifyCodexNativeReview(
   if (review.commit_id && headSha && review.commit_id !== headSha) return null;
   const login = normalizeLogin(review.user?.login);
   if (!isTrustedReviewLogin(login, "codex", config)) return null;
-  if (containsBlockingSeverity(review.body, "codex")) return "fail";
 
   if (review.state === "CHANGES_REQUESTED") return "fail";
   // Inspect inline severities for any submitted-acceptance state so that an
   // `APPROVED` review with inline P0-P2 or untagged findings still fails.
+  // Non-submitted states (DISMISSED/PENDING) are not evidence even when the
+  // review body still carries an old severity tag.
   if (!["APPROVED", "COMMENTED"].includes(review.state)) return null;
+  if (containsBlockingSeverity(review.body, "codex")) return "fail";
 
   const commentsForReview = reviewComments.filter(
     (comment) =>

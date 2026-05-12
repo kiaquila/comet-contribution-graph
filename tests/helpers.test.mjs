@@ -435,6 +435,24 @@ test("Codex commented reviews are classified by inline priorities", () => {
     classifyCodexNativeReview({ ...review, state: "APPROVED" }, [], "abc"),
     "pass",
   );
+
+  assert.equal(
+    classifyCodexNativeReview(
+      { ...review, state: "DISMISSED", body: "Contains P1" },
+      [],
+      "abc",
+    ),
+    null,
+  );
+
+  assert.equal(
+    classifyCodexNativeReview(
+      { ...review, state: "PENDING", body: "Contains P0" },
+      [],
+      "abc",
+    ),
+    null,
+  );
   assert.equal(
     classifyCodexNativeReview(
       review,

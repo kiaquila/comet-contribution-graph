@@ -52,6 +52,12 @@
       review with inline `[P0]`-`[P2]` or untagged findings now classifies
       as `fail`; add helpers tests covering approved-with-inline-blocker,
       approved-with-untagged, and approved-with-no-inline cases.
+- [x] T018 Review iteration 7: address Codex P2 on `ai-review-helpers.mjs:226`
+      by moving the state allow-list check before the top-level severity scan
+      in `classifyCodexNativeReview` — a `DISMISSED` or `PENDING` Codex review
+      whose body still carries a stale `P0`-`P2` tag now returns `null`
+      instead of `fail` (mirrors the Gemini path); add helpers tests covering
+      DISMISSED-with-stale-severity and PENDING-with-stale-severity.
 
 ## Process Memory
 
