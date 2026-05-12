@@ -494,6 +494,44 @@ test("review bot logins require exact trusted matches", () => {
   );
 });
 
+test("Gemini auto-reviews are acceptable on current head without a marker", () => {
+  const review = {
+    commit_id: "abc",
+    state: "COMMENTED",
+    body: "Looks good to me.",
+    user: { login: "gemini-code-assist[bot]" },
+  };
+
+  assert.equal(isAcceptableNativeReview(review, "gemini", "abc"), true);
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "Found a critical issue." },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, commit_id: "stale" },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, user: { login: "gemini-fan-99" } },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+});
+
 test("Claude comments must contain pass for the current head SHA", () => {
   assert.equal(
     isAcceptableClaudeComment(

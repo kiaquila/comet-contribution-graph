@@ -53,6 +53,16 @@ Out of scope:
 7. Given future agents compare this repo to Unicorn Hub, when they read durable
    docs, then they can see which blueprint-only pieces remain intentionally out
    of scope.
+8. Given a PR touches `.github/`, `.gemini/`, `.unicorn-hub/`, `tests/`, or
+   `tsconfig.json`, when the feature-memory gate runs, then it requires a
+   complete `specs/<id>/{spec,plan,tasks}.md` set in the same PR. This is an
+   intentional intensification over the prior `defaultProductPaths`: any change
+   to CI workflows, AI-review tooling, or test contracts must come with feature
+   memory.
+9. Given `AI_REVIEW_AGENT=gemini` and a PR `opened`/`ready_for_review` event,
+   when Gemini Code Assist auto-reviews the current head without a human
+   trigger, then `AI Review` accepts the trusted current-head Gemini review
+   even when no `unicorn-hub:ai-review-request` marker has been recorded.
 
 ## Negative Scenarios
 

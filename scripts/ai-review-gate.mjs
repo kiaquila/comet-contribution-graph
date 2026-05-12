@@ -151,6 +151,23 @@ function isAfterRequest(value, requestMarker) {
 async function fetchEvidence() {
   if (!(await currentHeadMatches())) return "stale";
 
+  if (selectedAgent === "gemini") {
+    // Gemini Code Assist auto-reviews `opened`/`ready_for_review` events
+    // without a human trigger, so the workflow forces `trigger_mode=skip`
+    // and no marker is written. Accept any acceptable native review on the
+    // current head before falling back to the marker-gated path.
+    const geminiReviews = await listPaginated(
+      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+    );
+    if (
+      geminiReviews.some((review) =>
+        isAcceptableNativeReview(review, "gemini", headSha, config),
+      )
+    ) {
+      return "pass";
+    }
+  }
+
   const comments = await listPaginated(
     `/repos/${owner}/${repo}/issues/${prNumber}/comments`,
   );

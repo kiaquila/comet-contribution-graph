@@ -19,7 +19,10 @@
 
 - [x] T009 Run targeted checks after each phase.
 - [x] T010 Run full `pnpm run preflight` and `pnpm run ci`.
-- [ ] T011 Push branch, open ready PR, and post `@codex review`.
+- [x] T011 Push branch, open ready PR, and post `@codex review`.
+- [x] T012 Review iteration 1: address Codex P2 on `ai-review-gate.mjs:162` by
+      letting Gemini auto-reviews pass without a marker; add helpers test for
+      acceptable Gemini native review.
 
 ## Process Memory
 
