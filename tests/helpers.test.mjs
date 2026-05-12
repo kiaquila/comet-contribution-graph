@@ -585,6 +585,16 @@ test("Gemini native review classification inspects inline severities", () => {
   );
 
   assert.equal(
+    classifyGeminiNativeReview({ ...review, state: "DISMISSED" }, [], "abc"),
+    null,
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview({ ...review, state: "PENDING" }, [], "abc"),
+    null,
+  );
+
+  assert.equal(
     classifyGeminiNativeReview(
       review,
       [
@@ -640,10 +650,7 @@ test("latest Gemini native review result wins for a head", () => {
     "pass",
   );
 
-  assert.equal(
-    latestGeminiNativeReviewResult([], [], "abc"),
-    null,
-  );
+  assert.equal(latestGeminiNativeReviewResult([], [], "abc"), null);
 });
 
 test("Claude comments must contain pass for the current head SHA", () => {

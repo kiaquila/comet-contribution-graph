@@ -279,6 +279,11 @@ export function classifyGeminiNativeReview(
   if (review.commit_id && headSha && review.commit_id !== headSha) return null;
   const login = normalizeLogin(review.user?.login);
   if (!isTrustedReviewLogin(login, "gemini", config)) return null;
+  // Only submitted review states carry acceptance signal. Dismissed and
+  // pending reviews are not evidence: GitHub returns them with their original
+  // commit_id, so they would otherwise fall through to a passing classification.
+  if (!["APPROVED", "CHANGES_REQUESTED", "COMMENTED"].includes(review.state))
+    return null;
   if (review.state === "CHANGES_REQUESTED") return "fail";
   if (containsBlockingSeverity(review.body, "gemini")) return "fail";
 

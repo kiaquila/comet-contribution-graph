@@ -28,6 +28,12 @@
       that inspect inline review comments for blocking severities; wire the
       gate to fetch `/pulls/{n}/comments` alongside reviews; add helpers tests
       covering inline severities and latest-review semantics.
+- [x] T014 Review iteration 3: address Codex P2 on `ai-review-helpers.mjs:298`
+      by gating `classifyGeminiNativeReview` to acceptable submitted review
+      states (`APPROVED`/`CHANGES_REQUESTED`/`COMMENTED`) so dismissed and
+      pending reviews no longer fall through to a pass; restore Prettier
+      formatting on `tests/helpers.test.mjs` that broke `baseline-checks`
+      in the previous push; add helpers tests covering `DISMISSED`/`PENDING`.
 
 ## Process Memory
 
