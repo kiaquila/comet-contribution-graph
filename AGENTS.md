@@ -178,8 +178,9 @@ This is the canonical reading order. `docs_comet/README.md` is a topical index (
 5. `docs_comet/project/devops/ai-pr-workflow.md` — PR gates and merge rules
 6. `docs_comet/project/devops/review-contract.md` — what each review backend produces
 7. `docs_comet/project/devops/review-trigger-automation.md` — why bot-posted triggers are rejected, active Tier 1
-8. `docs_comet/project/devops/delivery-playbook.md` — preview + production smoke
-9. `docs_comet/project/devops/vercel-cd.md` — Vercel deploy contract (prototype preview infra)
-10. `docs_comet/project/devops/github-action-target.md` — future Action deliverable and open questions
-11. `specs/<feature-id>/spec.md`, `plan.md`, `tasks.md` — active feature
-12. `prototypes/variant-d-grid-peaks.html` — current prototype
+8. `docs_comet/project/devops/unicorn-hub-adoption.md` — adopted vs skipped blueprint pieces
+9. `docs_comet/project/devops/delivery-playbook.md` — preview + production smoke
+10. `docs_comet/project/devops/vercel-cd.md` — Vercel deploy contract (prototype preview infra)
+11. `docs_comet/project/devops/github-action-target.md` — future Action deliverable and open questions
+12. `specs/<feature-id>/spec.md`, `plan.md`, `tasks.md` — active feature
+13. `prototypes/variant-d-grid-peaks.html` — current prototype

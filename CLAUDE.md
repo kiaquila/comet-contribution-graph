@@ -69,6 +69,7 @@ Skip the proposal for trivial tasks (rename, one-line fix, quick question, fast 
 - PR loop: `docs_comet/project/devops/ai-pr-workflow.md`
 - Review contract: `docs_comet/project/devops/review-contract.md`
 - Review trigger automation: `docs_comet/project/devops/review-trigger-automation.md`
+- Unicorn Hub adoption boundary: `docs_comet/project/devops/unicorn-hub-adoption.md`
 - Delivery playbook: `docs_comet/project/devops/delivery-playbook.md`
 - Vercel CD: `docs_comet/project/devops/vercel-cd.md`
 - GitHub Action target: `docs_comet/project/devops/github-action-target.md`

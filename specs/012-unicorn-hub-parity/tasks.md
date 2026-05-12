@@ -13,12 +13,12 @@
 - [x] T005 Add SENAR templates, PR checklist, and docs.
 - [x] T006 Port event-driven AI Review marker/rerun flow.
 - [x] T007 Add branch-protection helper and docs.
-- [ ] T008 Document intentionally skipped Unicorn Hub blueprint internals.
+- [x] T008 Document intentionally skipped Unicorn Hub blueprint internals.
 
 ## Verification
 
-- [ ] T009 Run targeted checks after each phase.
-- [ ] T010 Run full `pnpm run preflight` and `pnpm run ci`.
+- [x] T009 Run targeted checks after each phase.
+- [x] T010 Run full `pnpm run preflight` and `pnpm run ci`.
 - [ ] T011 Push branch, open ready PR, and post `@codex review`.
 
 ## Process Memory
@@ -44,8 +44,12 @@
   event-driven gate: `codex` and `gemini` are enabled; Claude remains rejected.
 - Do not apply branch protection from this unmerged branch; land the helper
   first, then run it from trusted `main`.
+- Record skipped blueprint pieces explicitly so future parity work stays
+  intentional instead of slowly copying Unicorn Hub internals by default.
 
 ### Known Issues
 
 - Branch protection is currently absent on `main`; this PR adds the helper but
   does not apply protection before the helper itself is reviewed.
+- `pnpm run preflight` passed locally after the six implementation commits; it
+  includes the full `pnpm run ci` chain and 111 Node tests.
