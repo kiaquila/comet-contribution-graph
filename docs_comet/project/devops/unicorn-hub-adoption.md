@@ -10,7 +10,7 @@ it.
 
 ## Adopted
 
-- `.unicorn-hub/config.json` as a small local policy file for docs root, specs
+- `.comet-control/config.json` as a small local policy file for docs root, specs
   root, product paths, required checks, enabled review agents, and baseline
   files.
 - `scripts/shared.mjs` for shared config and argument parsing helpers.

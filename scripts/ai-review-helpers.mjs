@@ -30,7 +30,7 @@ export function createAiReviewRequestMarkerBody({
   return [
     `AI review request recorded for \`${String(headSha || "").slice(0, 10)}\`.`,
     "",
-    "<!-- unicorn-hub:ai-review-request",
+    "<!-- comet:ai-review-request",
     `AI_REVIEW_REQUEST_ID: ${requestId}`,
     `AI_REVIEW_AGENT: ${String(agent || "")
       .trim()
@@ -45,7 +45,11 @@ export function createAiReviewRequestMarkerBody({
 
 export function extractAiReviewRequestMarker(body) {
   const text = String(body || "");
-  if (!text.includes("unicorn-hub:ai-review-request")) return null;
+  const hasKnownMarker = [
+    "comet:ai-review-request",
+    "unicorn-hub:ai-review-request",
+  ].some((marker) => text.includes(marker));
+  if (!hasKnownMarker) return null;
 
   const field = (name) =>
     text.match(new RegExp(`^${name}:\\s*(.+?)\\s*$`, "im"))?.[1]?.trim() ||
@@ -75,6 +79,12 @@ export function normalizeLogin(login) {
   return String(login || "").toLowerCase();
 }
 
+export function aiReviewMarkerAuthorLogin(config = {}) {
+  return normalizeLogin(
+    config.aiReviewMarkerAuthorLogin || "github-actions[bot]",
+  );
+}
+
 const defaultTrustedReviewLogins = {
   codex: ["chatgpt-codex-connector[bot]"],
   claude: ["claude[bot]"],
@@ -95,9 +105,14 @@ export function isTrustedReviewLogin(login, agent, config = {}) {
   return trustedReviewLoginsForAgent(agent, config).has(normalizeLogin(login));
 }
 
-export function isAiReviewRequestMarkerComment(comment, agent, headSha) {
+export function isAiReviewRequestMarkerComment(
+  comment,
+  agent,
+  headSha,
+  config = {},
+) {
   const login = normalizeLogin(comment?.user?.login);
-  if (login !== "github-actions[bot]") return false;
+  if (login !== aiReviewMarkerAuthorLogin(config)) return false;
   const marker = extractAiReviewRequestMarker(comment?.body);
   if (!marker) return false;
   return (
@@ -105,7 +120,12 @@ export function isAiReviewRequestMarkerComment(comment, agent, headSha) {
   );
 }
 
-export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
+export function latestAiReviewRequestMarker(
+  comments = [],
+  agent,
+  headSha,
+  config = {},
+) {
   return (
     comments
       .map((comment) => {
@@ -121,7 +141,7 @@ export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
       .filter(
         (marker) =>
           marker &&
-          normalizeLogin(marker.author) === "github-actions[bot]" &&
+          normalizeLogin(marker.author) === aiReviewMarkerAuthorLogin(config) &&
           marker.agent === String(agent || "").toLowerCase() &&
           marker.sha === headSha,
       )
@@ -136,12 +156,27 @@ export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
 export function containsBlockingSeverity(body, agent) {
   const text = String(body || "");
   if (agent === "codex") {
-    return /\bP[0-2]\b/.test(text);
+    return /\bP[0-2]\b/i.test(text);
   }
   if (agent === "gemini") {
-    return /\b(critical|high|medium)\b/i.test(text);
+    return ["critical", "high", "medium"].includes(extractGeminiSeverity(text));
   }
   return false;
+}
+
+function extractGeminiSeverity(body) {
+  const text = String(body || "");
+  const patterns = [
+    /\b(?:severity|priority|risk|impact)\s*[:：-]\s*(critical|high|medium|low)\b/i,
+    /(?:^|[\n\r])\s*(?:[-*]\s*)?(?:\*\*)?\s*(critical|high|medium|low)\s*(?:\*\*)?\s*[:：-]/i,
+    /\[(critical|high|medium|low)\]/i,
+    /\b(critical|high|medium|low)\s+(?:severity|priority|risk|impact|finding|issue)\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1].toLowerCase();
+  }
+  return null;
 }
 
 export function extractCodexPriority(body) {
@@ -302,7 +337,7 @@ export function classifyGeminiNativeReview(
     inlineFromGemini.some(
       (comment) =>
         containsBlockingSeverity(comment.body, "gemini") ||
-        !/\b(critical|high|medium|low)\b/i.test(comment.body || ""),
+        !extractGeminiSeverity(comment.body),
     )
   ) {
     return "fail";

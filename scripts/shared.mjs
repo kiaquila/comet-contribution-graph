@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 export const scriptDir = dirname(fileURLToPath(import.meta.url));
 export const repoRoot = resolve(scriptDir, "..");
+export const configDir = ".comet-control";
+export const configFile = `${configDir}/config.json`;
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {};
@@ -37,19 +39,19 @@ export function findRepoRoot(start = process.cwd()) {
   while (current !== dirname(current)) {
     if (
       existsSync(join(current, ".git")) ||
-      existsSync(join(current, ".unicorn-hub/config.json"))
+      existsSync(join(current, configFile))
     ) {
       return current;
     }
     current = dirname(current);
   }
   throw new Error(
-    `Could not find repository root from ${resolve(start)}. Expected a .git directory or .unicorn-hub/config.json.`,
+    `Could not find repository root from ${resolve(start)}. Expected a .git directory or ${configFile}.`,
   );
 }
 
 export function readConfig(root = findRepoRoot()) {
-  const configPath = join(root, ".unicorn-hub/config.json");
+  const configPath = join(root, configFile);
   if (!existsSync(configPath)) {
     return {
       docsDir: "docs_comet",

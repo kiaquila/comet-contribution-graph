@@ -9,7 +9,7 @@ branch.
 
 ## Required Checks
 
-The required checks are read from `.unicorn-hub/config.json`:
+The required checks are read from `.comet-control/config.json`:
 
 - `baseline-checks`
 - `guard`
@@ -35,8 +35,9 @@ The helper enables:
 
 The default required human approvals value is `0`, which keeps the solo-owner
 workflow usable while still requiring green checks and resolved conversations.
-Pass `--approvals 1` or higher when human approval should become part of the
-protection rule.
+When `--approvals` is omitted, the helper prints an explicit warning before it
+applies that default. Pass `--approvals 1` or higher when human approval should
+become part of the protection rule.
 
 ## Verify
 

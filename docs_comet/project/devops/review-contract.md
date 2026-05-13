@@ -34,6 +34,10 @@ Full backend matrix and mitigation Tiers: see `review-trigger-automation.md`. Ca
 - Inline findings are expected to carry `Critical`, `High`, `Medium`, or `Low`
 - `Low`-only findings are advisory
 - `Critical`, `High`, and `Medium` findings block merge
+- Severity words must be explicit review severities, for example
+  `Severity: High`, `[High]`, `High severity`, or a line that starts with
+  `High:`. Incidental phrases such as `high confidence` are not severity
+  markers.
 
 ## Claude Review (currently non-operational)
 

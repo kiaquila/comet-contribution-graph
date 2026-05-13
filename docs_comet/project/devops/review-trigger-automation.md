@@ -35,6 +35,10 @@ When the selected backend posts trusted review evidence, `AI Review Rerun`
 reruns the required `AI Review` check again so it can validate the evidence
 without a long polling window.
 
+The marker author is configured by `aiReviewMarkerAuthorLogin` in
+`.comet-control/config.json`. The default remains `github-actions[bot]`, but it
+is not hard-coded in the marker validator.
+
 A complementary `pnpm run review:retrigger` (not yet implemented) would skip step 1 for the "just rerun the current agent" case.
 
 ## Tier 2 and Tier 3 (design, not adopted)

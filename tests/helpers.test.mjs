@@ -42,11 +42,23 @@ test("Claude review markers are parsed", () => {
 
 test("blocking severity is backend aware", () => {
   assert.equal(containsBlockingSeverity("Found P1 issue", "codex"), true);
+  assert.equal(containsBlockingSeverity("Found p1 issue", "codex"), true);
   assert.equal(containsBlockingSeverity("Found P3 issue", "codex"), false);
   assert.equal(extractCodexPriority("Found P2 issue"), 2);
   assert.equal(extractCodexPriority("No priority marker"), null);
-  assert.equal(containsBlockingSeverity("Critical bug", "gemini"), true);
-  assert.equal(containsBlockingSeverity("Medium note", "gemini"), true);
+  assert.equal(
+    containsBlockingSeverity("Severity: Critical bug", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("Medium severity note", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("High confidence summary", "gemini"),
+    false,
+  );
+  assert.equal(containsBlockingSeverity("Severity: Low nit", "gemini"), false);
 });
 
 test("native Codex review must be approved and current-head", () => {
@@ -170,6 +182,12 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     requestedAt: "2026-04-29T19:29:46Z",
   });
+  assert.equal(
+    extractAiReviewRequestMarker(
+      body.replace("comet:ai-review-request", "unicorn-hub:ai-review-request"),
+    ).requestId,
+    "10-abc123def456",
+  );
 
   const markerComment = {
     id: 11,
@@ -195,6 +213,37 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
   assert.equal(
     latestAiReviewRequestMarker([markerComment], "codex", "abc123def456")
       .requestId,
+    "10-abc123def456",
+  );
+
+  const customMarkerComment = {
+    ...markerComment,
+    user: { login: "comet-actions[bot]" },
+  };
+  assert.equal(
+    isAiReviewRequestMarkerComment(
+      customMarkerComment,
+      "codex",
+      "abc123def456",
+    ),
+    false,
+  );
+  assert.equal(
+    isAiReviewRequestMarkerComment(
+      customMarkerComment,
+      "codex",
+      "abc123def456",
+      { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
+    ),
+    true,
+  );
+  assert.equal(
+    latestAiReviewRequestMarker(
+      [customMarkerComment],
+      "codex",
+      "abc123def456",
+      { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
+    ).requestId,
     "10-abc123def456",
   );
 });
@@ -600,11 +649,20 @@ test("Gemini auto-reviews are acceptable on current head without a marker", () =
 
   assert.equal(
     isAcceptableNativeReview(
-      { ...review, body: "Found a critical issue." },
+      { ...review, body: "Severity: Critical issue." },
       "gemini",
       "abc",
     ),
     false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "High confidence summary." },
+      "gemini",
+      "abc",
+    ),
+    true,
   );
 
   assert.equal(

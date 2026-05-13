@@ -182,6 +182,7 @@ async function fetchEvidence() {
     comments,
     selectedAgent,
     headSha,
+    config,
   );
   if (!requestMarker) return "missing_marker";
 
