@@ -5,8 +5,9 @@ individual feature PRs.
 
 ## Index
 
-_(No ADRs recorded yet. First entries expected when the data-sourcing strategy
-and SVG rendering approach are decided.)_
+- [ADR-0001 — Defer acorn-based inline JS validator](ADR-0001-defer-acorn-js-validator.md)
+  — ESLint v9 + `eslint-plugin-html` adopted in PR #4 covers current `check:js`
+  scope; reopen only if a hand-rolled detector reappears under `scripts/`.
 
 ## When to add an ADR
 
