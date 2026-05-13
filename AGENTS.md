@@ -13,22 +13,25 @@ visual treatment:
 - **Inactive cells** fade into a deep night sky palette
 - A **soft background star layer** adds atmosphere
 
-**Current implementation:** prototype only — single-file HTML+CSS+inline-JS
-**Font:** Space Mono via Google Fonts CDN
-**Deploy target:** Vercel (temporary prototype preview); final target is a GitHub Action
+**Current implementation:** TypeScript SVG renderer + GitHub Action, with the
+original standalone prototype retained under `prototypes/`
+**Font:** Space Mono via Google Fonts CDN in the browser prototype; generated
+SVG output uses repository-owned renderer styles
+**Deploy target:** GitHub Action package for user profile repos; Vercel remains
+available for prototype previews
 **Owner:** kiaquila — personal project
 
 ## Current Phase & Status
 
-| Area                                      | Status                                      |
-| ----------------------------------------- | ------------------------------------------- |
-| Product prototype                         | COMPLETE (fake data, browser-only)          |
-| Real GitHub data wiring                   | NOT STARTED                                 |
-| SVG generator (Node-compatible)           | NOT STARTED                                 |
-| GitHub Action packaging                   | NOT STARTED                                 |
-| Repository memory and feature-memory flow | IN PROGRESS (this PR)                       |
-| CI / AI review orchestration              | IN PROGRESS (this PR)                       |
-| Production deploy flow                    | NOT STARTED (Vercel wired for preview only) |
+| Area                                      | Status                                              |
+| ----------------------------------------- | --------------------------------------------------- |
+| Product prototype                         | COMPLETE, retained for visual reference             |
+| Real GitHub data wiring                   | COMPLETE via GitHub GraphQL data layer              |
+| SVG generator (Node-compatible)           | COMPLETE in `src/renderer.ts`                       |
+| GitHub Action packaging                   | COMPLETE via `action.yml` and `dist-action/`        |
+| Repository memory and feature-memory flow | ACTIVE, enforced by guard and specs folders         |
+| CI / AI review orchestration              | ACTIVE, with Unicorn Hub parity work in progress    |
+| Production deploy flow                    | GitHub Action package; Vercel preview for prototype |
 
 ## Project Structure
 
@@ -39,13 +42,25 @@ comet-contribution-graph/
 ├── specs/
 │   └── <feature-id>/                   # Feature memory: spec.md, plan.md, tasks.md
 ├── prototypes/
-│   └── variant-d-grid-peaks.html       # Current standalone prototype (open in browser)
+│   ├── variant-d-grid-peaks.html       # Original standalone prototype
+│   └── variant-d-real-history.html     # Browser prototype with real-history sample flow
+├── src/
+│   ├── action.ts                       # GitHub Action entrypoint
+│   ├── data.ts                         # GitHub GraphQL contribution fetcher
+│   ├── normalize.ts                    # Calendar normalization
+│   └── renderer.ts                     # Node-compatible SVG renderer
+├── tests/                              # Node test suite and SVG snapshots
+├── dist-action/                        # Bundled Action output checked into git
 ├── package.json                        # Repo tooling for CI, local orchestration, and build
-├── vercel.json                         # Vercel build/output configuration (when wired)
+├── action.yml                          # Published GitHub Action contract
+├── vercel.json                         # Vercel preview/output configuration
 ├── scripts/
-│   ├── build-static.mjs                # Static build to dist/ (future)
+│   ├── build-static.mjs                # Static preview build to dist/
 │   ├── check-static-baseline.mjs       # Repository baseline checks
 │   ├── check-feature-memory.mjs        # Product change -> complete specs folder enforcement
+│   ├── check-dist.mjs                  # Bundled Action artifact verification
+│   ├── fetch-contributions.mjs         # Local GraphQL sample fetch helper
+│   ├── render-sample.mjs               # Local SVG sample renderer
 │   ├── set-implementation-agent.mjs    # Local + GitHub agent policy helper
 │   ├── new-worktree.mjs                # macOS local worktree helper
 │   ├── start-implementation-worker.mjs # Prompt preparation helper
@@ -69,7 +84,12 @@ comet-contribution-graph/
 - Product-code work starts from an active `specs/<feature-id>/` folder.
 - One implementation loop uses one worktree, one branch, and one PR.
 - Required GitHub checks are `baseline-checks`, `guard`, and `AI Review`.
-- Vercel handles preview deployments for pull requests and production deployment for `main` through Git integration (prototype phase only; see `docs_comet/project/devops/vercel-cd.md`).
+- `osv-scan` runs as a supply-chain security check and may become required
+  once branch protection is applied.
+- Vercel handles prototype preview deployments for pull requests and `main`
+  through Git integration (see `docs_comet/project/devops/vercel-cd.md`).
+- The user-facing deliverable is the GitHub Action described by `action.yml`
+  and bundled under `dist-action/`.
 - Durable workflow docs live under `docs_comet/project/devops/`.
 - Local orchestration state lives under `.claude/` and is gitignored.
 - Local worktrees are created inside `<repoRoot>/.claude/worktrees/<slug>/` so they stay inside the repository.
@@ -158,8 +178,9 @@ This is the canonical reading order. `docs_comet/README.md` is a topical index (
 5. `docs_comet/project/devops/ai-pr-workflow.md` — PR gates and merge rules
 6. `docs_comet/project/devops/review-contract.md` — what each review backend produces
 7. `docs_comet/project/devops/review-trigger-automation.md` — why bot-posted triggers are rejected, active Tier 1
-8. `docs_comet/project/devops/delivery-playbook.md` — preview + production smoke
-9. `docs_comet/project/devops/vercel-cd.md` — Vercel deploy contract (prototype preview infra)
-10. `docs_comet/project/devops/github-action-target.md` — future Action deliverable and open questions
-11. `specs/<feature-id>/spec.md`, `plan.md`, `tasks.md` — active feature
-12. `prototypes/variant-d-grid-peaks.html` — current prototype
+8. `docs_comet/project/devops/unicorn-hub-adoption.md` — adopted vs skipped blueprint pieces
+9. `docs_comet/project/devops/delivery-playbook.md` — preview + production smoke
+10. `docs_comet/project/devops/vercel-cd.md` — Vercel deploy contract (prototype preview infra)
+11. `docs_comet/project/devops/github-action-target.md` — future Action deliverable and open questions
+12. `specs/<feature-id>/spec.md`, `plan.md`, `tasks.md` — active feature
+13. `prototypes/variant-d-grid-peaks.html` — current prototype

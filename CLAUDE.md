@@ -4,12 +4,16 @@ A cinematic GitHub contribution graph. A comet traces your most productive days 
 
 ## Current Stack
 
-- Prototype: single-file HTML+CSS+inline-JS (`prototypes/variant-d-grid-peaks.html`)
-- Space Mono font via Google Fonts CDN
-- CSS-based grid (SVG-style layout, not actual SVG elements in current prototype)
-- No framework, no bundler — open the HTML file directly in a browser
-- Vercel Git integration for preview and production deploy (prototype phase)
-- GitHub Actions for CI, guard, and AI review orchestration
+- Prototype: standalone HTML+CSS+inline-JS visual references under
+  `prototypes/`
+- Renderer: Node-compatible TypeScript SVG generation in `src/renderer.ts`
+- Data layer: GitHub GraphQL contribution fetching in `src/data.ts`
+- Action entrypoint: `src/action.ts`, bundled to `dist-action/` with ncc
+- Package contract: `action.yml` publishes the profile-repo renderer Action
+- Vercel Git integration for prototype preview deploys
+- GitHub Actions for CI, guard, AI review orchestration, dogfood rendering, and
+  OSV scanning
+- Tests: Node test suite plus SVG snapshots under `tests/`
 - `.specify/`, `docs_comet/`, and `specs/` as repository memory
 - Codex as default review backend (see `docs_comet/project/devops/ai-orchestration-protocol.md`)
 
@@ -65,6 +69,7 @@ Skip the proposal for trivial tasks (rename, one-line fix, quick question, fast 
 - PR loop: `docs_comet/project/devops/ai-pr-workflow.md`
 - Review contract: `docs_comet/project/devops/review-contract.md`
 - Review trigger automation: `docs_comet/project/devops/review-trigger-automation.md`
+- Unicorn Hub adoption boundary: `docs_comet/project/devops/unicorn-hub-adoption.md`
 - Delivery playbook: `docs_comet/project/devops/delivery-playbook.md`
 - Vercel CD: `docs_comet/project/devops/vercel-cd.md`
 - GitHub Action target: `docs_comet/project/devops/github-action-target.md`

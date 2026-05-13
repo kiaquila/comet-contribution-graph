@@ -77,13 +77,14 @@ Review normalization behavior:
 
 - `codex` is the current default review backend; `@codex review` from a trusted
   human posts a native PR review
-- pull-request `AI Review` runs support `codex`, `gemini`, and `claude`
-- manual Gemini and Codex review comments stay native-only to avoid canceling
-  the PR-linked `AI Review` check
-- trusted human review commands dispatch the shared `AI Review` gate via
-  `workflow_dispatch` only for `claude` (currently non-operational, see above)
-- the gate may reuse an existing same-head native review when a PR-linked
-  `AI Review` run is rerun
+- pull-request `AI Review` runs support `codex` and `gemini`
+- this repository currently enables only `codex` and `gemini` as review
+  backends in `.unicorn-hub/config.json`; Claude review remains
+  non-operational
+- trusted human review commands record a current-head review-request marker and
+  rerun the PR-linked `AI Review` check
+- trusted review evidence from the configured backend reruns `AI Review` again
+  so the required check can validate without a long polling window
 
 Only trusted actors may trigger AI workflows:
 

@@ -21,7 +21,20 @@ This doc covers PR-specific gates. The 10-step Standard Feature Loop lives in `.
 - Local product edits in the main checkout do not count as completed work.
 - If the selected implementation agent path is unavailable, stop and report the
   blocker instead of bypassing the loop.
+- Before pushing, run `pnpm run preflight`; it checks working-tree feature
+  memory before replaying the repository CI chain locally.
 - A PR is not done while required checks are queued, running, or red.
+
+## SENAR Done Gate
+
+Before merge, feature memory and the PR checklist must make the supervised
+verification contract visible:
+
+- goal and scope are named
+- acceptance criteria have evidence
+- at least one negative scenario is covered or explicitly waived
+- `tasks.md` records dead ends, decisions, and known issues
+- remaining known issues are accepted by the human merge owner
 
 ## Review Contract
 
@@ -33,13 +46,14 @@ Summary (details in `review-contract.md` and `ai-orchestration-protocol.md`):
 - **Human trigger required for Codex on EVERY review**, including the first
   review on PR open — Codex does not auto-review. (Only Gemini Code Assist
   auto-reviews on `opened` / `ready_for_review`.) The gate runs with
-  `trigger_mode=skip` on `pull_request` events and polls for an existing
-  same-head review, so without a human trigger it waits until timeout.
+  `trigger_mode=skip` on `pull_request` events and fails fast when a trusted
+  current-head review-request marker or review evidence is missing.
 - After a new push on an already-open PR, a human must post the native
   trigger comment again (`@codex review`, `/gemini review`, or
   `@claude review once`), or run `pnpm run review:switch -- --to <agent>`.
-  Bot-posted triggers are rejected by all three backends — see
-  `review-trigger-automation.md`.
+  Trusted trigger and trusted review-evidence events rerun the `AI Review`
+  check for the current head. Bot-posted triggers are rejected by all three
+  backends — see `review-trigger-automation.md`.
 
 ## Merge-Ready Definition
 
@@ -48,6 +62,7 @@ The current PR head SHA is merge-ready only when:
 - `baseline-checks` is green
 - `guard` is green
 - `AI Review` is green
+- `osv-scan` is green once branch protection is applied
 - Vercel preview is healthy for the changed flow
 - no blocking review findings remain unresolved
 - no merge conflicts remain
@@ -55,6 +70,9 @@ The current PR head SHA is merge-ready only when:
 ## Related Docs
 
 - `docs_comet/project/devops/ai-orchestration-protocol.md`
+- `docs_comet/project/devops/branch-protection.md`
+- `docs_comet/project/devops/local-preflight.md`
+- `docs_comet/project/devops/senar-mapping.md`
 - `docs_comet/project/devops/review-trigger-automation.md`
 - `docs_comet/project/devops/vercel-cd.md`
 - `docs_comet/project/devops/delivery-playbook.md`
