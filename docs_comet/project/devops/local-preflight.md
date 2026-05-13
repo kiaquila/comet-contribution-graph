@@ -18,7 +18,9 @@ The command currently checks:
 - complete feature memory for product/control-plane paths
 - repository baseline files from `.unicorn-hub/config.json`
 - prototype HTML validation
-- prototype inline JavaScript lint
+- prototype inline JavaScript lint (`check:js`); see
+  [`check-js-acorn-assessment.md`](check-js-acorn-assessment.md) before adding
+  another regex-based detector
 - TypeScript typecheck
 - static preview build
 - GitHub Action bundle and `dist-action/` verification
