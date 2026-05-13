@@ -188,6 +188,18 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     ).requestId,
     "10-abc123def456",
   );
+  assert.equal(
+    extractAiReviewRequestMarker(
+      "Discussing the kiaquila/unicorn-hub baseline for context.",
+    ),
+    null,
+  );
+  assert.equal(
+    extractAiReviewRequestMarker(
+      "See `comet:ai-review-request` envelope spec for details.",
+    ),
+    null,
+  );
 
   const markerComment = {
     id: 11,

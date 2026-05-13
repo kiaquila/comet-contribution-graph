@@ -29,6 +29,18 @@
 - [x] T013 Run `pnpm run preflight`.
 - [x] T014 Push branch, open a ready PR, and post `@codex review`.
 
+## Review Iteration
+
+- [x] T015 Route `ai-command-policy.mjs` bot-author check through
+      `aiReviewMarkerAuthorLogin(config)` so customizing the marker author
+      cannot leave a hardcoded `github-actions[bot]` bypass on the command
+      policy entrypoint.
+- [x] T016 Cover `extractAiReviewRequestMarker` negative cases for prose that
+      mentions `unicorn-hub` or `comet:ai-review-request` without a full
+      envelope, locking in the parser's literal substring contract.
+- [x] T017 Document the Claude branch in `containsBlockingSeverity`: Claude
+      reviews are gated by `AI_REVIEW_OUTCOME`, not by severity prose.
+
 ## Process Memory
 
 ### Decisions

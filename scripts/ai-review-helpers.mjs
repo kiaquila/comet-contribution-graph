@@ -161,6 +161,7 @@ export function containsBlockingSeverity(body, agent) {
   if (agent === "gemini") {
     return ["critical", "high", "medium"].includes(extractGeminiSeverity(text));
   }
+  // Claude reviews are gated by AI_REVIEW_OUTCOME, not by severity prose.
   return false;
 }
 
