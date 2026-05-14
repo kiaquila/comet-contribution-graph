@@ -61,9 +61,9 @@ Skip the proposal for trivial tasks (rename, one-line fix, quick question, fast 
 
 ## Documentation
 
-- Process constitution: `.specify/memory/constitution.md`
-- Docs map: `docs_comet/README.md`
-- Product idea: `docs_comet/project-idea.md`
+- Process constitution: @.specify/memory/constitution.md
+- Docs map: @docs_comet/README.md
+- Product idea: @docs_comet/project-idea.md
 - Frontend: `docs_comet/project/frontend/frontend-docs.md`
 - Orchestration: `docs_comet/project/devops/ai-orchestration-protocol.md`
 - PR loop: `docs_comet/project/devops/ai-pr-workflow.md`
