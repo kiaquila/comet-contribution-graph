@@ -34,12 +34,16 @@ Out of scope:
    comments, then `unicorn-hub:ai-review-request` still parses, while new
    markers are emitted as `comet:ai-review-request`.
 3. Given a repository config sets `aiReviewMarkerAuthorLogin`, when marker
-   comments are validated, then that login is trusted instead of a hard-coded
-   author.
+   comments are validated, then that login is trusted without dropping the
+   current workflow marker author `github-actions[bot]`.
 4. Given Codex evidence contains lowercase `p0`, `p1`, or `p2`, when severity
    is checked, then it is treated as blocking.
 5. Given Gemini text says `high confidence`, when severity is checked, then it
    is not treated as a `High` finding unless it is an explicit severity marker.
+   If a Gemini review body or inline comment contains both advisory and
+   blocking explicit severity markers, any blocking marker wins. Markdown
+   emphasis around explicit severity labels or values, such as
+   `**Severity:** High` or `Severity: **Medium**`, must still count as explicit.
 6. Given `pnpm run branch:protect` is run without `--approvals`, when the helper
    builds the protection payload, then it warns before using `0`.
 
@@ -47,8 +51,14 @@ Out of scope:
 
 - Legacy marker parsing must not allow arbitrary non-marker comments to count as
   review requests.
+- Customizing `aiReviewMarkerAuthorLogin` must not reject markers emitted by
+  the existing `GITHUB_TOKEN` workflow path.
 - Gemini inline comments without an explicit recognized severity should still
   block, preserving the existing conservative review gate behavior.
+- Gemini review text with `Severity: Low` followed by `High:` or another
+  blocking explicit marker must not pass as advisory-only.
+- Gemini review text with Markdown-emphasized explicit severity must not pass
+  as no-severity prose.
 - The PR must not include unrelated files from the user's main checkout.
 
 ## Success Criteria

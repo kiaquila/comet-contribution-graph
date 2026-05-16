@@ -40,6 +40,18 @@
       envelope, locking in the parser's literal substring contract.
 - [x] T017 Document the Claude branch in `containsBlockingSeverity`: Claude
       reviews are gated by `AI_REVIEW_OUTCOME`, not by severity prose.
+- [x] T018 Keep `github-actions[bot]` in the AI review request marker author
+      allowlist while also trusting the configured `aiReviewMarkerAuthorLogin`,
+      because the current command-policy workflow still posts marker comments
+      with `GITHUB_TOKEN`.
+- [x] T019 Add helper coverage proving a customized marker author does not
+      reject the marker emitted by the existing workflow identity.
+- [x] T020 Address OMX critic P1: scan all explicit Gemini severity markers so
+      a leading `Low` marker cannot mask a later `Critical`, `High`, or
+      `Medium` marker in the same review body or inline comment.
+- [x] T021 Address OMX critic P2: keep explicit Markdown-emphasized Gemini
+      severities such as `**Severity:** High` and `Severity: **Medium**`
+      blocking.
 
 ## Process Memory
 
@@ -51,7 +63,16 @@
   emitting the upstream-coupled marker name.
 - Keep Gemini inline review handling conservative: missing explicit severity is
   still blocking.
+- Treat `aiReviewMarkerAuthorLogin` as an additional trusted marker author
+  while `github-actions[bot]` remains the actual marker author for the current
+  workflow token path.
+- Any explicit blocking Gemini severity marker wins over advisory markers in
+  the same evidence body.
+- Markdown emphasis around an explicit Gemini severity label or value does not
+  make the marker advisory or invisible.
 
 ### Dead Ends
 
-- None yet.
+- `omx exec review --base origin/main "<prompt>"` and
+  `omx exec review --uncommitted --base origin/main` are invalid CLI
+  combinations; use the built-in base review mode without a custom prompt.

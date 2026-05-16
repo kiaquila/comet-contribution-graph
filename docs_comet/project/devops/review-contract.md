@@ -35,9 +35,11 @@ Full backend matrix and mitigation Tiers: see `review-trigger-automation.md`. Ca
 - `Low`-only findings are advisory
 - `Critical`, `High`, and `Medium` findings block merge
 - Severity words must be explicit review severities, for example
-  `Severity: High`, `[High]`, `High severity`, or a line that starts with
-  `High:`. Incidental phrases such as `high confidence` are not severity
-  markers.
+  `Severity: High`, `**Severity:** High`, `Severity: **High**`, `[High]`,
+  `High severity`, or a line that starts with `High:`. Incidental phrases such
+  as `high confidence` are not severity markers. When one review body or inline
+  comment contains multiple explicit severity markers, any `Critical`, `High`,
+  or `Medium` marker blocks the gate.
 
 ## Claude Review (currently non-operational)
 
