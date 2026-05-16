@@ -30,7 +30,7 @@ export function createAiReviewRequestMarkerBody({
   return [
     `AI review request recorded for \`${String(headSha || "").slice(0, 10)}\`.`,
     "",
-    "<!-- unicorn-hub:ai-review-request",
+    "<!-- comet:ai-review-request",
     `AI_REVIEW_REQUEST_ID: ${requestId}`,
     `AI_REVIEW_AGENT: ${String(agent || "")
       .trim()
@@ -45,7 +45,11 @@ export function createAiReviewRequestMarkerBody({
 
 export function extractAiReviewRequestMarker(body) {
   const text = String(body || "");
-  if (!text.includes("unicorn-hub:ai-review-request")) return null;
+  const hasKnownMarker = [
+    "comet:ai-review-request",
+    "unicorn-hub:ai-review-request",
+  ].some((marker) => text.includes(marker));
+  if (!hasKnownMarker) return null;
 
   const field = (name) =>
     text.match(new RegExp(`^${name}:\\s*(.+?)\\s*$`, "im"))?.[1]?.trim() ||
@@ -75,6 +79,24 @@ export function normalizeLogin(login) {
   return String(login || "").toLowerCase();
 }
 
+export function aiReviewMarkerAuthorLogin(config = {}) {
+  return normalizeLogin(
+    config.aiReviewMarkerAuthorLogin || "github-actions[bot]",
+  );
+}
+
+export function trustedAiReviewMarkerAuthorLogins(config = {}) {
+  return new Set(
+    ["github-actions[bot]", aiReviewMarkerAuthorLogin(config)].map(
+      normalizeLogin,
+    ),
+  );
+}
+
+export function isTrustedAiReviewMarkerAuthorLogin(login, config = {}) {
+  return trustedAiReviewMarkerAuthorLogins(config).has(normalizeLogin(login));
+}
+
 const defaultTrustedReviewLogins = {
   codex: ["chatgpt-codex-connector[bot]"],
   claude: ["claude[bot]"],
@@ -95,9 +117,14 @@ export function isTrustedReviewLogin(login, agent, config = {}) {
   return trustedReviewLoginsForAgent(agent, config).has(normalizeLogin(login));
 }
 
-export function isAiReviewRequestMarkerComment(comment, agent, headSha) {
+export function isAiReviewRequestMarkerComment(
+  comment,
+  agent,
+  headSha,
+  config = {},
+) {
   const login = normalizeLogin(comment?.user?.login);
-  if (login !== "github-actions[bot]") return false;
+  if (!isTrustedAiReviewMarkerAuthorLogin(login, config)) return false;
   const marker = extractAiReviewRequestMarker(comment?.body);
   if (!marker) return false;
   return (
@@ -105,7 +132,12 @@ export function isAiReviewRequestMarkerComment(comment, agent, headSha) {
   );
 }
 
-export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
+export function latestAiReviewRequestMarker(
+  comments = [],
+  agent,
+  headSha,
+  config = {},
+) {
   return (
     comments
       .map((comment) => {
@@ -121,7 +153,7 @@ export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
       .filter(
         (marker) =>
           marker &&
-          normalizeLogin(marker.author) === "github-actions[bot]" &&
+          isTrustedAiReviewMarkerAuthorLogin(marker.author, config) &&
           marker.agent === String(agent || "").toLowerCase() &&
           marker.sha === headSha,
       )
@@ -136,12 +168,32 @@ export function latestAiReviewRequestMarker(comments = [], agent, headSha) {
 export function containsBlockingSeverity(body, agent) {
   const text = String(body || "");
   if (agent === "codex") {
-    return /\bP[0-2]\b/.test(text);
+    return /\bP[0-2]\b/i.test(text);
   }
   if (agent === "gemini") {
-    return /\b(critical|high|medium)\b/i.test(text);
+    return extractGeminiSeverities(text).some((severity) =>
+      ["critical", "high", "medium"].includes(severity),
+    );
   }
+  // Claude reviews are gated by AI_REVIEW_OUTCOME, not by severity prose.
   return false;
+}
+
+function extractGeminiSeverities(body) {
+  const text = String(body || "");
+  const patterns = [
+    /(?:^|[^\w])(?:\*\*)?(?:severity|priority|risk|impact)(?:\*\*)?\s*[:：-]\s*(?:\*\*)?\s*(critical|high|medium|low)(?:\*\*)?\b/gi,
+    /(?:^|[\n\r])\s*(?:[-*]\s*)?(?:\*\*)?\s*(critical|high|medium|low)\s*(?:\*\*)?\s*[:：-](?:\*\*)?/gi,
+    /\[(critical|high|medium|low)\]/gi,
+    /(?:^|[^\w])(?:\*\*)?(critical|high|medium|low)(?:\*\*)?\s+(?:\*\*)?(?:severity|priority|risk|impact|finding|issue)(?:\*\*)?\b/gi,
+  ];
+  const severities = [];
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      severities.push(match[1].toLowerCase());
+    }
+  }
+  return severities;
 }
 
 export function extractCodexPriority(body) {
@@ -302,7 +354,7 @@ export function classifyGeminiNativeReview(
     inlineFromGemini.some(
       (comment) =>
         containsBlockingSeverity(comment.body, "gemini") ||
-        !/\b(critical|high|medium|low)\b/i.test(comment.body || ""),
+        extractGeminiSeverities(comment.body).length === 0,
     )
   ) {
     return "fail";

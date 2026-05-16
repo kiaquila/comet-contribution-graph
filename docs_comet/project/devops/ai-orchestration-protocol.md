@@ -79,7 +79,7 @@ Review normalization behavior:
   human posts a native PR review
 - pull-request `AI Review` runs support `codex` and `gemini`
 - this repository currently enables only `codex` and `gemini` as review
-  backends in `.unicorn-hub/config.json`; Claude review remains
+  backends in `.comet-control/config.json`; Claude review remains
   non-operational
 - trusted human review commands record a current-head review-request marker and
   rerun the PR-linked `AI Review` check

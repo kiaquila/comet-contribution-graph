@@ -38,7 +38,7 @@ Out of scope:
    bundled Action, tests, and preview workflow rather than a prototype-only
    state.
 3. Given local or CI gates need path policy, when scripts run, then shared
-   configuration comes from `.unicorn-hub/config.json` with comet-specific
+   configuration comes from `.comet-control/config.json` with comet-specific
    paths and review agents.
 4. Given a contributor prepares a product PR, when they use the installed
    templates and PR body, then goal, scope, acceptance evidence, negative
@@ -53,7 +53,7 @@ Out of scope:
 7. Given future agents compare this repo to Unicorn Hub, when they read durable
    docs, then they can see which blueprint-only pieces remain intentionally out
    of scope.
-8. Given a PR touches `.github/`, `.gemini/`, `.unicorn-hub/`, `tests/`, or
+8. Given a PR touches `.github/`, `.gemini/`, `.comet-control/`, `tests/`, or
    `tsconfig.json`, when the feature-memory gate runs, then it requires a
    complete `specs/<id>/{spec,plan,tasks}.md` set in the same PR. This is an
    intentional intensification over the prior `defaultProductPaths`: any change

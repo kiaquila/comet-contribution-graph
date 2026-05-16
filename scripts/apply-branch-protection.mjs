@@ -28,6 +28,19 @@ const repo =
     },
   ).trim();
 
+const approvalsProvided = Object.hasOwn(args, "approvals");
+const approvals = Number(approvalsProvided ? args.approvals : 0);
+if (!Number.isInteger(approvals) || approvals < 0) {
+  throw new Error(
+    `--approvals must be a non-negative integer, got ${args.approvals}`,
+  );
+}
+if (!approvalsProvided) {
+  console.warn(
+    "No --approvals value provided; defaulting required approving reviews to 0 for the solo-owner workflow.",
+  );
+}
+
 const payload = {
   required_status_checks: {
     strict: args.strict !== "false",
@@ -37,7 +50,7 @@ const payload = {
   required_pull_request_reviews: {
     dismiss_stale_reviews: true,
     require_code_owner_reviews: false,
-    required_approving_review_count: Number(args.approvals || 0),
+    required_approving_review_count: approvals,
     require_last_push_approval: false,
   },
   restrictions: null,

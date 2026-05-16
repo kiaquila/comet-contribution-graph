@@ -16,7 +16,7 @@ pnpm run preflight
 The command currently checks:
 
 - complete feature memory for product/control-plane paths
-- repository baseline files from `.unicorn-hub/config.json`
+- repository baseline files from `.comet-control/config.json`
 - prototype HTML validation
 - prototype inline JavaScript lint (`check:js`)
 - TypeScript typecheck
@@ -30,7 +30,7 @@ probe while editing specs and control-plane files.
 
 ## Policy Source
 
-`.unicorn-hub/config.json` carries the repo-specific control-plane policy:
+`.comet-control/config.json` carries the repo-specific control-plane policy:
 durable docs root, specs root, product paths, supported review agents, required
 checks, and baseline files. Scripts should read that config instead of
 hard-coding generic Unicorn Hub paths.

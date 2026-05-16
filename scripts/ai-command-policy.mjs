@@ -2,6 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import {
+  aiReviewMarkerAuthorLogin,
   createAiReviewRequestMarkerBody,
   isTrustedAssociation,
 } from "./ai-review-helpers.mjs";
@@ -35,7 +36,7 @@ const implementationAgents = new Set(["claude", "codex"]);
 
 if (
   commentAuthorType === "Bot" ||
-  commentAuthorLogin === "github-actions[bot]"
+  commentAuthorLogin === aiReviewMarkerAuthorLogin(config)
 ) {
   console.log("AI command ignored: comment was posted by a bot.");
   process.exit(0);

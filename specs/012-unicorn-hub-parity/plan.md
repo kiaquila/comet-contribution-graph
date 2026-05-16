@@ -8,14 +8,14 @@ operational friction.
 
 ## Commit Plan
 
-| Plan item | Commit scope                                                                            | Verification                                              |
-| --------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 1         | Fix OSV and refresh stale repository memory.                                            | `pnpm why fast-uri`; `pnpm run check:repo`                |
-| 2         | Add `.unicorn-hub/config.json`, shared helpers, config-aware baseline, and `preflight`. | `pnpm run preflight`                                      |
-| 3         | Add SENAR feature templates, `specs/README.md`, PR template, and docs.                  | `pnpm run format:check`                                   |
-| 4         | Port event-driven AI Review marker/rerun workflow.                                      | `node --test tests/rerun.test.mjs tests/helpers.test.mjs` |
-| 5         | Add branch-protection helper and docs.                                                  | `node --check scripts/apply-branch-protection.mjs`        |
-| 6         | Document intentionally skipped Unicorn Hub pieces.                                      | `pnpm run format:check`                                   |
+| Plan item | Commit scope                                                                              | Verification                                              |
+| --------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1         | Fix OSV and refresh stale repository memory.                                              | `pnpm why fast-uri`; `pnpm run check:repo`                |
+| 2         | Add `.comet-control/config.json`, shared helpers, config-aware baseline, and `preflight`. | `pnpm run preflight`                                      |
+| 3         | Add SENAR feature templates, `specs/README.md`, PR template, and docs.                    | `pnpm run format:check`                                   |
+| 4         | Port event-driven AI Review marker/rerun workflow.                                        | `node --test tests/rerun.test.mjs tests/helpers.test.mjs` |
+| 5         | Add branch-protection helper and docs.                                                    | `node --check scripts/apply-branch-protection.mjs`        |
+| 6         | Document intentionally skipped Unicorn Hub pieces.                                        | `pnpm run format:check`                                   |
 
 ## Technical Context
 

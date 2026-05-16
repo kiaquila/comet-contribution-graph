@@ -14,6 +14,7 @@ import {
   isAcceptableClaudeComment,
   isAcceptableCodexSummaryComment,
   isAcceptableNativeReview,
+  isTrustedAiReviewMarkerAuthorLogin,
   latestAiReviewRequestMarker,
   latestCodexNativeReviewResult,
   latestGeminiNativeReviewResult,
@@ -42,11 +43,42 @@ test("Claude review markers are parsed", () => {
 
 test("blocking severity is backend aware", () => {
   assert.equal(containsBlockingSeverity("Found P1 issue", "codex"), true);
+  assert.equal(containsBlockingSeverity("Found p1 issue", "codex"), true);
   assert.equal(containsBlockingSeverity("Found P3 issue", "codex"), false);
   assert.equal(extractCodexPriority("Found P2 issue"), 2);
   assert.equal(extractCodexPriority("No priority marker"), null);
-  assert.equal(containsBlockingSeverity("Critical bug", "gemini"), true);
-  assert.equal(containsBlockingSeverity("Medium note", "gemini"), true);
+  assert.equal(
+    containsBlockingSeverity("Severity: Critical bug", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("Medium severity note", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("High confidence summary", "gemini"),
+    false,
+  );
+  assert.equal(containsBlockingSeverity("Severity: Low nit", "gemini"), false);
+  assert.equal(
+    containsBlockingSeverity(
+      "Severity: Low nit\nHigh: later blocker",
+      "gemini",
+    ),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("**Severity:** High blocker", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("Severity: **Medium** blocker", "gemini"),
+    true,
+  );
+  assert.equal(
+    containsBlockingSeverity("**High:** markdown heading", "gemini"),
+    true,
+  );
 });
 
 test("native Codex review must be approved and current-head", () => {
@@ -170,6 +202,24 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     requestedAt: "2026-04-29T19:29:46Z",
   });
+  assert.equal(
+    extractAiReviewRequestMarker(
+      body.replace("comet:ai-review-request", "unicorn-hub:ai-review-request"),
+    ).requestId,
+    "10-abc123def456",
+  );
+  assert.equal(
+    extractAiReviewRequestMarker(
+      "Discussing the kiaquila/unicorn-hub baseline for context.",
+    ),
+    null,
+  );
+  assert.equal(
+    extractAiReviewRequestMarker(
+      "See `comet:ai-review-request` envelope spec for details.",
+    ),
+    null,
+  );
 
   const markerComment = {
     id: 11,
@@ -195,6 +245,55 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
   assert.equal(
     latestAiReviewRequestMarker([markerComment], "codex", "abc123def456")
       .requestId,
+    "10-abc123def456",
+  );
+  assert.equal(
+    isTrustedAiReviewMarkerAuthorLogin("github-actions[bot]", {
+      aiReviewMarkerAuthorLogin: "comet-actions[bot]",
+    }),
+    true,
+  );
+  assert.equal(
+    isAiReviewRequestMarkerComment(markerComment, "codex", "abc123def456", {
+      aiReviewMarkerAuthorLogin: "comet-actions[bot]",
+    }),
+    true,
+  );
+  assert.equal(
+    latestAiReviewRequestMarker([markerComment], "codex", "abc123def456", {
+      aiReviewMarkerAuthorLogin: "comet-actions[bot]",
+    }).requestId,
+    "10-abc123def456",
+  );
+
+  const customMarkerComment = {
+    ...markerComment,
+    user: { login: "comet-actions[bot]" },
+  };
+  assert.equal(
+    isAiReviewRequestMarkerComment(
+      customMarkerComment,
+      "codex",
+      "abc123def456",
+    ),
+    false,
+  );
+  assert.equal(
+    isAiReviewRequestMarkerComment(
+      customMarkerComment,
+      "codex",
+      "abc123def456",
+      { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
+    ),
+    true,
+  );
+  assert.equal(
+    latestAiReviewRequestMarker(
+      [customMarkerComment],
+      "codex",
+      "abc123def456",
+      { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
+    ).requestId,
     "10-abc123def456",
   );
 });
@@ -600,7 +699,43 @@ test("Gemini auto-reviews are acceptable on current head without a marker", () =
 
   assert.equal(
     isAcceptableNativeReview(
-      { ...review, body: "Found a critical issue." },
+      { ...review, body: "Severity: Critical issue." },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "High confidence summary." },
+      "gemini",
+      "abc",
+    ),
+    true,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "Severity: Low nit.\nSeverity: Medium issue." },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "**Severity:** High issue." },
+      "gemini",
+      "abc",
+    ),
+    false,
+  );
+
+  assert.equal(
+    isAcceptableNativeReview(
+      { ...review, body: "Severity: **Medium** issue." },
       "gemini",
       "abc",
     ),
@@ -665,6 +800,39 @@ test("Gemini native review classification inspects inline severities", () => {
       "abc",
     ),
     "pass",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      review,
+      [
+        {
+          pull_request_review_id: 42,
+          body: "Severity: Low — small nit.\nHigh: broken gate.",
+          user: { login: "gemini-code-assist[bot]" },
+        },
+      ],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      { ...review, body: "**Severity:** High — markdown review body." },
+      [],
+      "abc",
+    ),
+    "fail",
+  );
+
+  assert.equal(
+    classifyGeminiNativeReview(
+      { ...review, body: "Severity: **Medium** — markdown value." },
+      [],
+      "abc",
+    ),
+    "fail",
   );
 
   assert.equal(
