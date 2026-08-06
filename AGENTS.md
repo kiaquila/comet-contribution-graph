@@ -81,6 +81,8 @@ comet-contribution-graph/
 ## Delivery Workflow
 
 - All code changes land through pull requests.
+- Create pull requests as ready for review by default; use a draft only when
+  explicitly requested or when the work is knowingly incomplete.
 - Product-code work starts from an active `specs/<feature-id>/` folder.
 - One implementation loop uses one worktree, one branch, and one PR.
 - Required GitHub checks are `baseline-checks`, `guard`, and `AI Review`.
