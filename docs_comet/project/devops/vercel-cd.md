@@ -65,7 +65,10 @@ generator is extracted and the prototype is refactored.
 ## Supply-chain Hygiene
 
 - **OSV Scanner** should be wired once `pnpm-lock.yaml` is present.
-- **Dependabot** should be enabled for `github-actions` and `npm` ecosystems.
+- **Dependabot** is enabled for `github-actions` and `npm`. Group each
+  ecosystem's minor and patch version updates; keep major updates separate.
+  `github-actions` supports only `cooldown.default-days`, while npm may use
+  its SemVer-specific cooldown settings.
 - **Pinned action SHAs.** Third-party GitHub Actions should be pinned to a
   commit SHA with a trailing `# v<tag>` comment once CI workflows are added.
 

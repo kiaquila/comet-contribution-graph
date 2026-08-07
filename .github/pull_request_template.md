@@ -13,3 +13,10 @@
 ## Validation
 
 - [ ] `pnpm run preflight`
+
+<!--
+If Codex materially assisted with this pull request, append this as the final
+line of the description (outside this comment):
+
+Co-authored-by: Codex <codex@openai.com>
+-->
