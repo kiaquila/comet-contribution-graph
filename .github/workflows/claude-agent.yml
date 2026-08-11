@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Bootstrap checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Checkout PR head
         if: steps.pr.outputs.is_pull_request == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Pin to the resolved head SHA captured at context-resolution time
           # so a push landing between `Resolve PR context` and this checkout
@@ -114,7 +114,7 @@ jobs:
 
       - name: Checkout default branch
         if: steps.pr.outputs.is_pull_request != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

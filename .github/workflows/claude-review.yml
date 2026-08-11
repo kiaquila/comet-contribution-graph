@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Bootstrap checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -97,7 +97,7 @@ jobs:
           exit 1
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.checkout_ref }}
