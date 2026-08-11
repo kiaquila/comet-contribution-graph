@@ -25,6 +25,13 @@ This doc covers PR-specific gates. The 10-step Standard Feature Loop lives in `.
   memory before replaying the repository CI chain locally.
 - A PR is not done while required checks are queued, running, or red.
 
+## Dependency Maintenance
+
+Dependabot updates to GitHub Action workflows are control-plane changes. Keep
+their scope limited to the proposed versions, record a complete feature-memory
+triad, run preflight, and request a fresh human-authored review for the final
+head. Do not merge such updates by bypassing a feature-memory or review gate.
+
 ## SENAR Done Gate
 
 Before merge, feature memory and the PR checklist must make the supervised
