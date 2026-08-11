@@ -16,3 +16,5 @@ request a human-authored current-head AI review before merge.
   the same required checks and final-head review process.
 - `pnpm/action-setup` v4.3.0 → v6.0.10: verified in CI and PR Guard by the
   same required checks and final-head review process.
+- `actions/setup-node` v4 → v7: verified in CI and PR Guard by the same
+  required checks and final-head review process.
