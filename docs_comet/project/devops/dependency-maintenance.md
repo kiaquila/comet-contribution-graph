@@ -21,3 +21,5 @@ request a human-authored current-head AI review before merge.
 - `@vercel/ncc` v0.38.4 → v0.44.1 and Prettier v3.8.2 → v3.9.6: verified as
   a grouped development-dependency update, including the Action distribution
   check after rebuilding generated output.
+- ESLint v9 → v10: requires the full lint and preflight chain before merge to
+  validate compatibility with the repository's lint configuration.
