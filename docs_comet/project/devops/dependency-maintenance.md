@@ -14,3 +14,5 @@ request a human-authored current-head AI review before merge.
   required GitHub checks and a final-head Codex review.
 - `actions/github-script` v8 → v9: verified in the Claude workflow files by
   the same required checks and final-head review process.
+- `pnpm/action-setup` v4.3.0 → v6.0.10: verified in CI and PR Guard by the
+  same required checks and final-head review process.
