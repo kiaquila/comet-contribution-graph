@@ -25,3 +25,5 @@ request a human-authored current-head AI review before merge.
   validate compatibility with the repository's lint configuration.
 - html-validate v10 → v11: requires the HTML validation and full preflight
   chain with the repository's Node runtime before merge.
+- `@actions/exec` v1 → v3: requires Action-entrypoint tests and the bundled
+  distribution check before merge.
