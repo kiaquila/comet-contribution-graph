@@ -6,7 +6,7 @@
   "scripts": {
     "agent:set": "node scripts/set-implementation-agent.mjs",
     "build": "node scripts/build-static.mjs",
-    "build:action": "ncc build src/action.ts -o dist-action --minify --license licenses.txt",
+    "build:action": "pnpm run build:renderer && ncc build dist-renderer/action.js -o dist-action --minify --license licenses.txt",
     "build:renderer": "tsc",
     "check:dist": "pnpm run build:action && node scripts/check-dist.mjs dist-action",
     "check:feature-memory": "node scripts/check-feature-memory.mjs",
@@ -38,7 +38,7 @@
     "globals": "^16",
     "html-validate": "^11.6.0",
     "prettier": "^3.9.6",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {

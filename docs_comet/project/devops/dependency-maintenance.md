@@ -27,3 +27,7 @@ request a human-authored current-head AI review before merge.
   chain with the repository's Node runtime before merge.
 - `@actions/exec` v1 → v3: requires Action-entrypoint tests and the bundled
   distribution check before merge.
+- TypeScript v5 → v7: requires type checking, Action build, and the complete
+  preflight chain before merge. The Action build compiles TypeScript first and
+  bundles its emitted JavaScript because NCC v0.44.1 does not load TypeScript
+  v7 directly.
