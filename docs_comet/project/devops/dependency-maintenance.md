@@ -18,3 +18,6 @@ request a human-authored current-head AI review before merge.
   same required checks and final-head review process.
 - `actions/setup-node` v4 → v7: verified in CI and PR Guard by the same
   required checks and final-head review process.
+- `@vercel/ncc` v0.38.4 → v0.44.1 and Prettier v3.8.2 → v3.9.6: verified as
+  a grouped development-dependency update, including the Action distribution
+  check after rebuilding generated output.
