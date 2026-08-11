@@ -12,3 +12,5 @@ request a human-authored current-head AI review before merge.
 
 - `actions/checkout` v6 → v7: verified across all repository workflows by the
   required GitHub checks and a final-head Codex review.
+- `actions/github-script` v8 → v9: verified in the Claude workflow files by
+  the same required checks and final-head review process.

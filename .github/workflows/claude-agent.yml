@@ -72,7 +72,7 @@ jobs:
 
       - name: Explain unavailable Claude agent path
         if: steps.safety.outputs.claude_agent_permitted != 'true' && steps.pr.outputs.is_pull_request == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const message = [
