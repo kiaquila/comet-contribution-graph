@@ -23,3 +23,5 @@ request a human-authored current-head AI review before merge.
   check after rebuilding generated output.
 - ESLint v9 → v10: requires the full lint and preflight chain before merge to
   validate compatibility with the repository's lint configuration.
+- html-validate v10 → v11: requires the HTML validation and full preflight
+  chain with the repository's Node runtime before merge.
