@@ -38,8 +38,8 @@ importers:
         specifier: ^57
         version: 57.0.0(eslint@10.8.0)
       globals:
-        specifier: ^16
-        version: 16.5.0
+        specifier: ^17
+        version: 17.9.0
       html-validate:
         specifier: ^11.6.0
         version: 11.6.2
@@ -478,8 +478,8 @@ packages:
     resolution: {integrity: sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg==}
     engines: {node: '>=18'}
 
-  globals@16.5.0:
-    resolution: {integrity: sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==}
+  globals@17.9.0:
+    resolution: {integrity: sha512-m/MvAW61QVU5VDNF1Vj8axt016h8w7L5TU1e9zlab7XIttAT2YAlCwl75K1fOqvMM9apmD7lbCIRhpfkhmxhCg==}
     engines: {node: '>=18'}
 
   hosted-git-info@7.0.2:
@@ -1134,7 +1134,7 @@ snapshots:
 
   globals@15.15.0: {}
 
-  globals@16.5.0: {}
+  globals@17.9.0: {}
 
   hosted-git-info@7.0.2:
     dependencies:
