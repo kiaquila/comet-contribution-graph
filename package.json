@@ -34,7 +34,7 @@
     "@vercel/ncc": "^0.44.1",
     "eslint": "^10",
     "eslint-plugin-html": "^8",
-    "eslint-plugin-unicorn": "^57",
+    "eslint-plugin-unicorn": "^73",
     "globals": "^17",
     "html-validate": "^11.6.0",
     "prettier": "^3.9.6",
