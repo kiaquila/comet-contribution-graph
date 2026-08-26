@@ -35,3 +35,5 @@ request a human-authored current-head AI review before merge.
   `google/osv-scanner-action` v2.3.8 → v2.5.0: verified as a grouped GitHub
   Actions update by the required checks and a final-head Codex review; both
   actions stay pinned to commit SHAs.
+- `globals` v16 → v17: requires prototype linting to confirm the global
+  environment names used by the flat ESLint configuration still resolve.
