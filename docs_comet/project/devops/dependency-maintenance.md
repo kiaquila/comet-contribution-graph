@@ -44,3 +44,6 @@ request a human-authored current-head AI review before merge.
   whose type declarations no longer carry a `/// <reference types="node" />`
   directive, so `tsconfig.json` now names `node` in `types` instead of relying
   on that transitive reference to load the Node global declarations.
+- `eslint-plugin-unicorn` v57 → v73: requires the prototype lint run to confirm
+  the `unicorn/no-array-callback-reference` rule the flat configuration enables
+  still exists in the new rule set.
