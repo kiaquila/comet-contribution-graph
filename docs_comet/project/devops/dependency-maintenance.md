@@ -39,3 +39,8 @@ request a human-authored current-head AI review before merge.
   environment names used by the flat ESLint configuration still resolve.
 - `@types/node` v24 → v26: requires strict type checking of the renderer, data
   layer, and Action entrypoint before merge.
+- `@actions/core` v1 → v3: requires the Action-entrypoint tests and the bundled
+  distribution check before merge. The v3 chain pulls `@actions/http-client` v4,
+  whose type declarations no longer carry a `/// <reference types="node" />`
+  directive, so `tsconfig.json` now names `node` in `types` instead of relying
+  on that transitive reference to load the Node global declarations.
