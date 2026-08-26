@@ -37,3 +37,5 @@ request a human-authored current-head AI review before merge.
   actions stay pinned to commit SHAs.
 - `globals` v16 → v17: requires prototype linting to confirm the global
   environment names used by the flat ESLint configuration still resolve.
+- `@types/node` v24 → v26: requires strict type checking of the renderer, data
+  layer, and Action entrypoint before merge.
