@@ -31,3 +31,7 @@ request a human-authored current-head AI review before merge.
   preflight chain before merge. The Action build compiles TypeScript first and
   bundles its emitted JavaScript because NCC v0.44.1 does not load TypeScript
   v7 directly.
+- `anthropics/claude-code-action` v1 repin and
+  `google/osv-scanner-action` v2.3.8 → v2.5.0: verified as a grouped GitHub
+  Actions update by the required checks and a final-head Codex review; both
+  actions stay pinned to commit SHAs.
