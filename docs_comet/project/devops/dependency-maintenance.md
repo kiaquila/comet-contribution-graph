@@ -47,3 +47,8 @@ request a human-authored current-head AI review before merge.
 - `eslint-plugin-unicorn` v57 → v73: requires the prototype lint run to confirm
   the `unicorn/no-array-callback-reference` rule the flat configuration enables
   still exists in the new rule set.
+- Grouped development-dependency maintenance (`@types/node` 26.1.2 → 26.2.0,
+  `@vercel/ncc` 0.44.1 → 0.45.0, ESLint 10.8.0 → 10.8.1, `globals` 17.9.0 →
+  17.11.0, html-validate 11.6.2 → 11.8.0): requires HTML validation, prototype
+  linting, type checking, and the Action distribution check after rebuilding
+  the bundle with the new NCC release.
