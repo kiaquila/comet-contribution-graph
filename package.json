@@ -26,7 +26,7 @@
     "worktree:new": "node scripts/new-worktree.mjs"
   },
   "dependencies": {
-    "@actions/core": "^1.11.0",
+    "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0"
   },
   "devDependencies": {
