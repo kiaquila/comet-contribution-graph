@@ -52,3 +52,6 @@ request a human-authored current-head AI review before merge.
   17.11.0, html-validate 11.6.2 → 11.8.0): requires HTML validation, prototype
   linting, type checking, and the Action distribution check after rebuilding
   the bundle with the new NCC release.
+- ESLint 10.8.1 → 10.9.0 and html-validate 11.8.0 → 11.10.0: require the
+  complete preflight chain, with particular attention to prototype JavaScript
+  linting and HTML validation; no configuration relaxation is in scope.
