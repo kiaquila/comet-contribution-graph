@@ -36,7 +36,7 @@
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^73",
     "globals": "^17",
-    "html-validate": "^11.8.0",
+    "html-validate": "^11.10.0",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2"
   },
