@@ -55,3 +55,7 @@ request a human-authored current-head AI review before merge.
 - ESLint 10.8.1 → 10.9.0 and html-validate 11.8.0 → 11.10.0: require the
   complete preflight chain, with particular attention to prototype JavaScript
   linting and HTML validation; no configuration relaxation is in scope.
+- `anthropics/claude-code-action` 1.0.190 → 1.0.202 and
+  `google/osv-scanner-action` 2.5.0 → 2.5.1: retain immutable SHA pins,
+  preserve workflow permissions and trigger policy, and verify the full
+  preflight chain before the final-head Codex review.
