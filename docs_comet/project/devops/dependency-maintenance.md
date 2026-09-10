@@ -63,3 +63,8 @@ request a human-authored current-head AI review before merge.
   and dormant Claude review workflows on the same immutable release commit,
   preserve their permissions, triggers, inputs, and prompts, and verify the
   full preflight chain before the final-head Codex review.
+- Grouped development-tooling maintenance (`@types/node` 26.2.0 → 26.4.0,
+  ESLint 10.9.0 → 10.9.1, `eslint-plugin-html` 8.1.4 → 8.2.0, and
+  html-validate 11.10.0 → 11.11.0): requires strict type checking,
+  prototype JavaScript linting, HTML validation, the Action distribution
+  check, and the complete preflight chain without relaxing configuration.
