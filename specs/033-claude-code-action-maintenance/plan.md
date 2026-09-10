@@ -11,12 +11,14 @@ fresh final-head Codex review.
 - runtime: GitHub Actions workflow definitions
 - dependencies: `anthropics/claude-code-action` v1.0.211
 - product paths: `.github/workflows/claude-agent.yml`,
-  `.github/workflows/claude-review.yml`
+  `.github/workflows/claude-review.yml`,
+  `docs_comet/project/devops/dependency-maintenance.md`
 - data changes: none
 
 ## Scope Boundaries
 
-- in scope: two immutable action-SHA updates and feature memory
+- in scope: two immutable action-SHA updates, durable dependency-maintenance
+  documentation, and feature memory
 - out of scope: workflow behavior, permissions, prompts, secrets, other
   dependencies, and product code
 
@@ -40,7 +42,7 @@ No new runtime or architectural complexity is introduced.
 | Acceptance criterion | Evidence                                                      |
 | -------------------- | ------------------------------------------------------------- |
 | AC-001               | GitHub tag API plus an exact diff of both workflow references |
-| AC-002               | `git diff origin/main...HEAD -- .github/workflows/`           |
+| AC-002               | Exact workflow diff plus the durable maintenance record       |
 | AC-003               | `pnpm run preflight` and final GitHub check rollup            |
 | AC-004               | Current-head Codex review and review-thread GraphQL query     |
 

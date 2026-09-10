@@ -12,7 +12,8 @@ In scope:
 - Update the immutable `anthropics/claude-code-action` commit SHA in
   `.github/workflows/claude-agent.yml` and
   `.github/workflows/claude-review.yml`.
-- Record the dependency-maintenance intent and verification evidence.
+- Update `docs_comet/project/devops/dependency-maintenance.md` and record the
+  dependency-maintenance intent and verification evidence.
 
 Out of scope:
 
@@ -34,7 +35,8 @@ maintained without changing repository policy.
    then each is pinned to commit
    `833fb0f8c9f6686b33d963a8bae0a94f4936ab2a` for v1.0.211.
 2. Given the dependency-only scope, when the final diff is inspected, then no
-   workflow trigger, permission, input, secret, or prompt has changed.
+   workflow trigger, permission, input, secret, or prompt has changed, and the
+   durable maintenance record names v1.0.211.
 3. Given the final branch head, when `pnpm run preflight` and GitHub checks run,
    then they pass without weakening validation.
 4. Given a trusted maintainer review request for the final head, when Codex
