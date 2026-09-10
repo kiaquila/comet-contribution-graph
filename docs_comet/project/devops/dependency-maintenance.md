@@ -59,3 +59,7 @@ request a human-authored current-head AI review before merge.
   `google/osv-scanner-action` 2.5.0 → 2.5.1: retain immutable SHA pins,
   preserve workflow permissions and trigger policy, and verify the full
   preflight chain before the final-head Codex review.
+- `anthropics/claude-code-action` 1.0.202 → 1.0.211: keep the Claude agent
+  and dormant Claude review workflows on the same immutable release commit,
+  preserve their permissions, triggers, inputs, and prompts, and verify the
+  full preflight chain before the final-head Codex review.
