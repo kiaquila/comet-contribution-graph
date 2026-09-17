@@ -72,3 +72,8 @@ request a human-authored current-head AI review before merge.
   `anthropics/claude-code-action` 1.0.211 → 1.0.217: retain immutable commit
   pins, preserve all workflow triggers, permissions, inputs, and prompts, and
   verify the complete preflight chain before the final-head Codex review.
+- Grouped development-tooling maintenance (`@types/node` 26.4.0 → 26.4.1,
+  ESLint 10.9.1 → 10.10.0, `globals` 17.11.0 → 17.12.0, and html-validate
+  11.11.0 → 11.14.0): requires a frozen lockfile install, strict type checking,
+  prototype linting, HTML validation, Action distribution verification, and
+  the complete preflight chain without relaxing configuration.
