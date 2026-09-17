@@ -77,3 +77,7 @@ request a human-authored current-head AI review before merge.
   11.11.0 → 11.14.0): requires a frozen lockfile install, strict type checking,
   prototype linting, HTML validation, Action distribution verification, and
   the complete preflight chain without relaxing configuration.
+- `eslint-plugin-unicorn` v73 → v74: preserve the existing flat-config rule set
+  and verify prototype linting plus the complete preflight chain on ESLint
+  10.10.0; resolve its lockfile update without reverting the grouped tooling
+  versions already merged through PR #44.
