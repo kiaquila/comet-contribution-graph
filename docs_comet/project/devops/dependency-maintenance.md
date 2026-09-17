@@ -68,3 +68,7 @@ request a human-authored current-head AI review before merge.
   html-validate 11.10.0 → 11.11.0): requires strict type checking,
   prototype JavaScript linting, HTML validation, the Action distribution
   check, and the complete preflight chain without relaxing configuration.
+- `pnpm/action-setup` 6.0.10 → 6.1.0 and
+  `anthropics/claude-code-action` 1.0.211 → 1.0.217: retain immutable commit
+  pins, preserve all workflow triggers, permissions, inputs, and prompts, and
+  verify the complete preflight chain before the final-head Codex review.
