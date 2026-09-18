@@ -20,6 +20,10 @@ inputs:
     description: "Output branch. Force-pushed on every run."
     required: false
     default: "comet-graph"
+  layout:
+    description: "Graph layout: 'orbit' (radial year + stats panel, 896×300) or 'grid' (classic 7×53 sky, 896×150)."
+    required: false
+    default: "orbit"
 runs:
   using: "node24"
   main: "dist-action/index.js"

@@ -20,3 +20,6 @@ prototypes/v2-local/
 # differ byte-for-byte between local and CI. No runtime value for a
 # bundled Action — keep them out of git to stabilize check:dist.
 dist-action/*.d.ts.map
+
+# Local design-exploration gallery (20 cinematic variants); generator + rendered SVGs stay local.
+prototypes/cinematic-variants/

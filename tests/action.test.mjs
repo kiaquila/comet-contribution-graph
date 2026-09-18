@@ -40,6 +40,7 @@ const ENV_KEYS = [
   "INPUT_TOKEN",
   "INPUT_REDUCED",
   "INPUT_BRANCH",
+  "INPUT_LAYOUT",
   "GITHUB_REPOSITORY",
   "GITHUB_TOKEN",
   "COMET_DRY_RUN",
@@ -154,6 +155,36 @@ test("renders only comet.svg when INPUT_REDUCED=false", async () => {
     false,
     "git add must NOT include comet-reduced.svg",
   );
+});
+
+test("INPUT_LAYOUT=grid is accepted and renders", async () => {
+  setupEnv({ INPUT_LAYOUT: "grid", COMET_DRY_RUN: "0" });
+  await run();
+  strictEqual(
+    setFailedCalls.length,
+    0,
+    `setFailed was called: ${setFailedCalls.join("; ")}`,
+  );
+  ok(
+    execCalls.some(([cmd, sub]) => cmd === "git" && sub === "push"),
+    "git push must be called",
+  );
+});
+
+test("unknown INPUT_LAYOUT → setFailed, no fetch issued", async () => {
+  setupEnv({ INPUT_LAYOUT: "spiral" });
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return {};
+  };
+  await run();
+  ok(setFailedCalls.length > 0, "setFailed must be called");
+  ok(
+    setFailedCalls.some((m) => m.includes("layout")),
+    `expected validation message about layout, got: ${setFailedCalls.join("; ")}`,
+  );
+  strictEqual(fetchCalled, false, "fetch must not be called on invalid layout");
 });
 
 test("renders comet.svg + comet-reduced.svg when INPUT_REDUCED=true", async () => {

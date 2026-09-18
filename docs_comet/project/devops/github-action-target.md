@@ -14,6 +14,7 @@ Publish a public GitHub Action that any developer installs in their profile repo
 - PR 003 — data layer — merged. GraphQL `contributionsCollection` fetcher + parser, 43 tests.
 - **PR 004 — Action entrypoint — MERGED (squash `7225f17`).** `action.yml` + `src/action.ts` + `@vercel/ncc` bundle in `dist-action/` + orphan force-push. All local checks green.
 - PR 005 — dogfood workflow + README publish — in review.
+- **038 — orbit layout (2026-09-17).** `src/orbit.ts` + shared `src/glyphs.ts`; `layout` input (`orbit` default, `grid` opt-out); `2.0.0`.
 
 ### Closed-in-PR-002 scope
 
@@ -69,6 +70,7 @@ These are load-bearing across all four PRs. Do not re-open unless the user reope
 | Output branch name            | `comet-graph`                                 | Dedicated orphan branch, force-pushed each run. README refs `raw.githubusercontent.com/USER/USER/comet-graph/comet.svg` (+ optional `comet-reduced.svg`). |
 | Light theme                   | dropped                                       | Starry sky is by definition dark — a "light" variant breaks the product metaphor. Dark-only ships in MVP; added 2026-04-20 after user review.             |
 | Color normalization           | percentile-based over user's own distribution | CLAUDE.md product rule: never absolute thresholds.                                                                                                        |
+| Layout                        | `layout` input, default `orbit` (v2.0.0)      | Owner picked Orbit from a 20-variant exploration on 2026-09-17; grid stays as `layout: grid`. See `specs/038-orbit-layout/`.                              |
 
 ## Deferred post-MVP
 

@@ -5,10 +5,15 @@
 `comet-contribution-graph` is a cinematic reimagining of the GitHub contribution
 graph. It:
 
-- Renders the familiar **7×53 grid** (weekday rows + month column labels) for legibility
-- Highlights **top productive days as golden stars**
-- Animates a **comet that flies through those stars chronologically**, leaving a glowing trail
-- Fades inactive cells into a **deep night sky** palette
+- Default **orbit layout** (v2.0.0): the year wound into **7 rings** around a
+  sun carrying the total, month ticks, a continuously **orbiting comet**, and a
+  stats panel (active days, longest streak, best day, busiest weekday,
+  weekly-volume histogram)
+- Optional **grid layout** (`layout: grid`): the familiar **7×53 grid**
+  (weekday rows + month column labels) with a comet flying through the peaks
+  chronologically
+- Highlights **top productive days as golden stars** in both layouts
+- Fades inactive days into a **deep night sky** palette
 - Adds a **soft background star layer** for atmosphere
 
 > This file is the canonical source of truth for product facts and roadmap. Other docs reference this.
