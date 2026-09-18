@@ -22,10 +22,16 @@ export interface Theme {
   readonly label: string;
 }
 
+// "orbit": radial year + stats panel (default). "grid": classic 7×53 sky.
+export type Layout = "grid" | "orbit";
+
 export interface RenderOptions {
   readonly theme: Theme;
   readonly animated: boolean;
   readonly seed?: number;
+  readonly layout?: Layout;
+  // Shown as the title of the orbit stats panel; omitted when absent.
+  readonly username?: string;
 }
 
 export interface NormalizedDay extends ContributionDay {

@@ -7,9 +7,15 @@ import * as actionsExec from "@actions/exec";
 import { fetchContributions } from "./data.js";
 import { renderCometSVG } from "./renderer.js";
 import { DARK_THEME } from "./themes.js";
+import type { Layout } from "./types.js";
 
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 const BRANCH_CHARSET_RE = /^[A-Za-z0-9._/-]{1,100}$/;
+const LAYOUTS: readonly Layout[] = ["orbit", "grid"];
+
+function isLayout(value: string): value is Layout {
+  return (LAYOUTS as readonly string[]).includes(value);
+}
 
 // Names git treats as pseudo-refs rather than ordinary branches. Using any
 // of these with `git checkout --orphan` or `git push HEAD:<name>` fails
@@ -68,6 +74,8 @@ export async function run(): Promise<void> {
     const reduced = (reducedInput === "" ? "true" : reducedInput) !== "false";
     const branchInput = core.getInput("branch");
     const branch = branchInput === "" ? "comet-graph" : branchInput;
+    const layoutInput = core.getInput("layout");
+    const layout = layoutInput === "" ? "orbit" : layoutInput;
 
     if (!username) {
       _fns.setFailed("username input is required");
@@ -84,6 +92,13 @@ export async function run(): Promise<void> {
     if (!isValidGitBranchName(branch)) {
       _fns.setFailed(
         `branch is not a valid git branch name: ${branch}. Must satisfy git-check-ref-format rules (no leading '-', '.', '/'; no trailing '.', '/', '.lock'; no '..' or '//'; charset [A-Za-z0-9._/-] length 1-100).`,
+      );
+      return;
+    }
+
+    if (!isLayout(layout)) {
+      _fns.setFailed(
+        `layout must be one of ${LAYOUTS.join(", ")}; got: ${layout}`,
       );
       return;
     }
@@ -106,6 +121,8 @@ export async function run(): Promise<void> {
     const animatedSvg = renderCometSVG(days, {
       theme: DARK_THEME,
       animated: true,
+      layout,
+      username,
     });
 
     const workdir = await mkdtemp(join(tmpdir(), "comet-graph-"));
@@ -116,6 +133,8 @@ export async function run(): Promise<void> {
       const reducedSvg = renderCometSVG(days, {
         theme: DARK_THEME,
         animated: false,
+        layout,
+        username,
       });
       await writeFile(join(workdir, "comet-reduced.svg"), reducedSvg, "utf8");
       files.push("comet-reduced.svg");

@@ -24,7 +24,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: kiaquila/comet-contribution-graph@v1
+      - uses: kiaquila/comet-contribution-graph@v2
         with:
           username: <user>
 ```
@@ -62,18 +62,17 @@ For users who prefer reduced motion, serve the static companion SVG via a `<pict
 | `token`    | no       | `${{ github.token }}` | Token with `contents:write` on the target repo; for cross-repo use a classic PAT with `repo` scope or a fine-grained PAT with `Contents: Read and write` |
 | `reduced`  | no       | `"true"`              | Also emit `comet-reduced.svg` for `prefers-reduced-motion` fallback                                                                                      |
 | `branch`   | no       | `"comet-graph"`       | Output branch; force-pushed on every run                                                                                                                 |
+| `layout`   | no       | `"orbit"`             | `orbit` — radial year + stats panel (896×300); `grid` — classic 7×53 sky (896×150)                                                                       |
 
 ## How it works
 
-Every run fetches your GitHub contributions via the GraphQL API, passes them through a pure-TS SVG renderer (SMIL-animated comet tracing your most productive days across a constellation of your year), and force-pushes the result to an orphan branch in the repository where the workflow runs. Your profile README embeds the SVG via a stable `raw.githubusercontent.com` URL.
+Every run fetches your GitHub contributions via the GraphQL API, passes them through a pure-TS SVG renderer (SMIL-animated comet orbiting a radial constellation of your year, or tracing your peak days across the classic grid), and force-pushes the result to an orphan branch in the repository where the workflow runs. Your profile README embeds the SVG via a stable `raw.githubusercontent.com` URL.
 
 ## Concept
 
-- Preserves the familiar 7×53 contribution grid for legibility (weekday rows + month labels).
-- Every active day is a star; size and brightness scale with your own contribution volume, relative to your personal peak.
-- The top productive days are highlighted as golden spike stars.
-- A comet flies through them chronologically, leaving a glowing trail.
-- Inactive cells fade into a deep night sky; a soft layer of background stars adds atmosphere.
+- **Orbit (default):** the year is wound into seven rings (one per weekday) around a sun that carries your total; month ticks mark the way round, and a comet orbits continuously. A panel beside it shows active days, longest streak, best day, busiest weekday and a weekly-volume histogram — so the poster still answers "how active is this person?" at a glance.
+- **Grid (`layout: grid`):** the familiar 7×53 contribution grid as a night sky, with a comet flying through your peak days chronologically.
+- In both layouts every active day is a star whose size and brightness scale with your own contribution volume, relative to your personal peak; the top productive days are golden spike stars.
 
 ## Contributing
 

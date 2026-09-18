@@ -1,5 +1,17 @@
+import {
+  GLYPH_DEFS,
+  HALO_DURATION_S,
+  HALO_STAGGER_S,
+  attrs,
+  coreFill,
+  lerp,
+  renderCometStack,
+  renderPeak,
+  COMET_TAIL_RX,
+} from "./glyphs.js";
 import { makePRNG } from "./prng.js";
 import { normalize } from "./normalize.js";
+import { renderOrbitSVG } from "./orbit.js";
 import type {
   ContributionDay,
   NormalizedDay,
@@ -29,17 +41,8 @@ const COMET_TRAVERSAL_MS = 4800;
 const COMET_HOLD_MS = 3500;
 const COMET_CYCLE_MS = COMET_TRAVERSAL_MS + COMET_HOLD_MS;
 const TWINKLE_DURATION_S = 7;
-const HALO_DURATION_S = 3;
-const HALO_STAGGER_S = 0.6;
 
 const DEFAULT_SEED = 0x5eed;
-const COMET_NUCLEUS_R = 1.85;
-const COMET_COMA_INNER_R = 3.29;
-const COMET_COMA_OUTER_R = 5.36;
-const COMET_COMA_INNER_OPACITY = 0.55;
-const COMET_COMA_OUTER_OPACITY = 0.28;
-const COMET_TAIL_RX = 56;
-const COMET_TAIL_RY = 3.0;
 
 // 5-bucket cell placement: 4 corners + center (weights 0.22/0.22/0.22/0.22/0.12).
 // Replaces the old continuous ±0.32 * CELL_SIZE jitter.
@@ -83,27 +86,6 @@ interface PlacedDay extends NormalizedDay {
   readonly angle: number;
 }
 
-type AttrValue = string | number;
-
-function fmt(value: AttrValue): string {
-  return typeof value === "number" ? value.toFixed(2) : value;
-}
-
-function attrs(
-  pairs: readonly (readonly [string, AttrValue | undefined])[],
-): string {
-  let out = "";
-  for (const [key, value] of pairs) {
-    if (value === undefined || value === "") continue;
-    out += ` ${key}="${fmt(value)}"`;
-  }
-  return out;
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
 // Core + halo geometry for non-peak stars.
 // Both ceilings grow with density regime d so large accounts look richer
 // at the top end. Floors are density-independent to guarantee small-account
@@ -133,23 +115,10 @@ function haloOpacity(t: number, d: number): number {
   return HALO_OP_FLOOR + Math.sqrt(t) * (ceil - HALO_OP_FLOOR);
 }
 
-function coreFill(t: number, hue: number): string {
-  const hueAdj = t >= 0.7 ? hue - ((t - 0.7) / 0.3) * 14 : hue;
-  const s = lerp(50, 82, t);
-  const l = lerp(38, 88, t);
-  return `hsl(${hueAdj.toFixed(1)},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
-}
-
 function haloFill(t: number, hue: number): string {
   const s = lerp(30, 55, t);
   const l = lerp(40, 70, t);
   return `hsl(${hue.toFixed(0)},${s.toFixed(0)}%,${l.toFixed(0)}%)`;
-}
-
-function peakFill(count: number): string {
-  if (count > 19) return "hsl(48,100%,92%)";
-  const lightness = lerp(68, 86, Math.max(0, (count - 15) / 4));
-  return `hsl(48,100%,${lightness.toFixed(1)}%)`;
 }
 
 function pickTint(tints: readonly string[], roll: number): string {
@@ -266,92 +235,6 @@ function renderStar(d: PlacedDay, theme: Theme, regime: number): string {
   return out;
 }
 
-function renderPeak(
-  d: PlacedDay,
-  peakIdx: number,
-  theme: Theme,
-  animated: boolean,
-): string {
-  const effective = Math.max(15, Math.min(d.count, 19));
-  const haloR = 3.5 + (effective - 15) * 0.6;
-  const coreR = 0.9 + (effective - 15) * 0.12;
-  const rayLen = 5.0 + (effective - 15) * 1.0;
-  const diagLen = rayLen * 0.45;
-  const diagOff = diagLen * 0.707;
-  const sphereR = haloR * 0.6;
-  const rayFill = peakFill(d.count);
-
-  let out = `<g transform="rotate(${d.angle.toFixed(1)} ${d.cx.toFixed(2)} ${d.cy.toFixed(2)})">`;
-  const haloOpen = `<circle${attrs([
-    ["cx", d.cx],
-    ["cy", d.cy],
-    ["r", haloR],
-    ["fill", theme.peakHalo],
-    ["fill-opacity", 0.35],
-  ])}`;
-  if (animated) {
-    out +=
-      haloOpen +
-      `><animate attributeName="fill-opacity" values="0.25;0.45;0.25" dur="${HALO_DURATION_S}s" begin="-${(peakIdx * HALO_STAGGER_S).toFixed(2)}s" repeatCount="indefinite" /></circle>`;
-  } else {
-    out += haloOpen + " />";
-  }
-  out += `<circle${attrs([
-    ["cx", d.cx],
-    ["cy", d.cy],
-    ["r", sphereR],
-    ["fill", "hsla(50,100%,99%,0.75)"],
-    ["filter", "url(#organic-sphere)"],
-  ])} />`;
-
-  out += `<line${attrs([
-    ["x1", d.cx - diagOff],
-    ["y1", d.cy - diagOff],
-    ["x2", d.cx + diagOff],
-    ["y2", d.cy + diagOff],
-    ["stroke", rayFill],
-    ["stroke-width", 0.4],
-    ["stroke-opacity", 0.42],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx - diagOff],
-    ["y1", d.cy + diagOff],
-    ["x2", d.cx + diagOff],
-    ["y2", d.cy - diagOff],
-    ["stroke", rayFill],
-    ["stroke-width", 0.4],
-    ["stroke-opacity", 0.42],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx - rayLen],
-    ["y1", d.cy],
-    ["x2", d.cx + rayLen],
-    ["y2", d.cy],
-    ["stroke", rayFill],
-    ["stroke-width", 0.5],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += `<line${attrs([
-    ["x1", d.cx],
-    ["y1", d.cy - rayLen],
-    ["x2", d.cx],
-    ["y2", d.cy + rayLen],
-    ["stroke", rayFill],
-    ["stroke-width", 0.5],
-    ["stroke-linecap", "round"],
-  ])} />`;
-  out += `<circle${attrs([
-    ["cx", d.cx],
-    ["cy", d.cy],
-    ["r", coreR],
-    ["fill", rayFill],
-  ])} />`;
-  out += "</g>";
-  return out;
-}
-
 function renderDayLabels(theme: Theme): string {
   let out = "";
   for (const [row, label] of DAY_LABELS) {
@@ -428,64 +311,15 @@ function renderComet(
 
   if (!animated) return out;
 
-  const cycleS = COMET_CYCLE_MS / 1000;
-  const travFrac = COMET_TRAVERSAL_MS / COMET_CYCLE_MS;
-  const motionKeyTimes = `0;${travFrac.toFixed(4)};1`;
-  const motionKeyPoints = "0;1;1";
-  const opacityKeyTimes = `0;${travFrac.toFixed(4)};${(travFrac + 0.001).toFixed(4)};1`;
-
-  const emitCometLayer = (
-    radius: number,
-    fill: string,
-    baseOpacity: number,
-    beginOffsetS: number,
-  ): string => {
-    const begin = beginOffsetS > 0 ? `-${beginOffsetS.toFixed(2)}s` : "0s";
-    const opacityVals = `${baseOpacity};${baseOpacity};0;0`;
-    return (
-      `<circle${attrs([
-        ["cx", 0],
-        ["cy", 0],
-        ["r", radius],
-        ["fill", fill],
-        ["opacity", baseOpacity],
-      ])}>` +
-      `<animateMotion dur="${cycleS.toFixed(2)}s" begin="${begin}" repeatCount="indefinite" keyTimes="${motionKeyTimes}" keyPoints="${motionKeyPoints}" calcMode="linear" path="${pathD}" />` +
-      `<animate attributeName="opacity" dur="${cycleS.toFixed(2)}s" begin="${begin}" repeatCount="indefinite" keyTimes="${opacityKeyTimes}" values="${opacityVals}" />` +
-      "</circle>"
-    );
-  };
-
-  // Tail: single gradient ellipse with rotate="auto" so the gradient tracks
-  // the path tangent. Rendered first so head/coma paint over it.
-  const tailDur = `dur="${cycleS.toFixed(2)}s"`;
-  out +=
-    `<ellipse cx="-${COMET_TAIL_RX}" cy="0" rx="${COMET_TAIL_RX}" ry="${COMET_TAIL_RY.toFixed(2)}" fill="url(#tail-grad)" filter="url(#tail-blur)">` +
-    `<animateMotion ${tailDur} begin="0s" repeatCount="indefinite" keyTimes="${motionKeyTimes}" keyPoints="${motionKeyPoints}" calcMode="linear" rotate="auto" path="${pathD}" />` +
-    `<animate attributeName="opacity" ${tailDur} begin="0s" repeatCount="indefinite" keyTimes="${opacityKeyTimes}" values="1;1;0;0" />` +
-    `</ellipse>`;
-
-  // Coma (outer halo then inner halo)
-  out += emitCometLayer(
-    COMET_COMA_OUTER_R,
-    theme.cometComaOuter,
-    COMET_COMA_OUTER_OPACITY,
-    0,
-  );
-  out += emitCometLayer(
-    COMET_COMA_INNER_R,
-    theme.cometComaInner,
-    COMET_COMA_INNER_OPACITY,
-    0,
-  );
-
-  // Nucleus (head)
-  out += emitCometLayer(COMET_NUCLEUS_R, theme.cometHead, 1, 0);
-
+  out += renderCometStack(pathD, theme, {
+    cycleS: COMET_CYCLE_MS / 1000,
+    travFrac: COMET_TRAVERSAL_MS / COMET_CYCLE_MS,
+    tailRx: COMET_TAIL_RX,
+  });
   return out;
 }
 
-export function renderCometSVG(
+function renderGridSVG(
   days: readonly ContributionDay[],
   options: RenderOptions,
 ): string {
@@ -505,7 +339,7 @@ export function renderCometSVG(
     ["height", SVG_HEIGHT],
     ["fill", theme.background],
   ])} />`;
-  out += `<defs><linearGradient id="tail-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c8e0ff" stop-opacity="0"/><stop offset="40%" stop-color="#c8e0ff" stop-opacity="0.1"/><stop offset="70%" stop-color="#d8ecff" stop-opacity="0.5"/><stop offset="90%" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></linearGradient><filter id="tail-blur" x="-20%" y="-100%" width="140%" height="300%"><feGaussianBlur stdDeviation="1.2"/></filter><filter id="organic-sphere" x="-80%" y="-80%" width="260%" height="260%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise" /><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displaced" /><feGaussianBlur in="displaced" stdDeviation="1.4" /></filter></defs>`;
+  out += `<defs>${GLYPH_DEFS}</defs>`;
   out += renderDayLabels(theme);
   out += renderMonthLabels(days, theme);
   out += renderBgStars(seed, theme, animated, densityRegime);
@@ -526,4 +360,14 @@ export function renderCometSVG(
 
   out += "</svg>";
   return out;
+}
+
+export function renderCometSVG(
+  days: readonly ContributionDay[],
+  options: RenderOptions,
+): string {
+  const layout = options.layout ?? "orbit";
+  return layout === "grid"
+    ? renderGridSVG(days, options)
+    : renderOrbitSVG(days, options);
 }
