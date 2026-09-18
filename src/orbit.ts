@@ -35,6 +35,10 @@ const SUN_R = 44;
 
 const PANEL_X = 340;
 const PANEL_RIGHT = SVG_WIDTH - 24;
+const PANEL_WIDTH = PANEL_RIGHT - PANEL_X;
+// Typical advance width of monospace glyphs, used to decide when a title
+// (GitHub logins go up to 39 chars) must be squeezed to the panel.
+const MONO_ADVANCE_EM = 0.62;
 const BARS_BASELINE = 262;
 const BARS_MAX_H = 44;
 
@@ -164,13 +168,17 @@ function computeStats(
     }
   });
 
-  const busiestIdx = weekdayTotals.indexOf(Math.max(...weekdayTotals));
+  // Only parsed dates can be grouped by weekday; if none carried any
+  // contributions the panel shows a dash instead of defaulting to Sunday.
+  const weekdayMax = Math.max(...weekdayTotals);
+  const busiestWeekday =
+    weekdayMax > 0 ? (WEEKDAYS[weekdayTotals.indexOf(weekdayMax)] ?? "—") : "—";
   return {
     total,
     activeDays,
     longestStreak,
     best,
-    busiestWeekday: total > 0 ? (WEEKDAYS[busiestIdx] ?? "—") : "—",
+    busiestWeekday,
     weekly,
     weeklyMax: Math.max(...weekly, 1),
     months,
@@ -196,8 +204,13 @@ function text(
     readonly anchor?: "middle" | "end";
     readonly spacing?: number;
     readonly weight?: "bold";
+    // Squeeze the run into this many px when its estimated width exceeds it.
+    readonly maxWidth?: number;
   },
 ): string {
+  const estimated =
+    content.length * (o.size * MONO_ADVANCE_EM + (o.spacing ?? 0));
+  const fit = o.maxWidth !== undefined && estimated > o.maxWidth;
   return `<text${attrs([
     ["x", x],
     ["y", y],
@@ -207,6 +220,8 @@ function text(
     ["text-anchor", o.anchor],
     ["letter-spacing", o.spacing],
     ["font-weight", o.weight],
+    ["textLength", fit ? o.maxWidth : undefined],
+    ["lengthAdjust", fit ? "spacingAndGlyphs" : undefined],
   ])}>${content}</text>`;
 }
 
@@ -309,6 +324,7 @@ function renderPanel(
       size: 18,
       fill: TITLE_FILL,
       spacing: 6,
+      maxWidth: PANEL_WIDTH,
     });
   }
   if (stats.first && stats.last) {
@@ -344,7 +360,7 @@ function renderPanel(
     fill: theme.label,
     spacing: 1.5,
   });
-  const bw = (PANEL_RIGHT - PANEL_X) / COLS;
+  const bw = PANEL_WIDTH / COLS;
   stats.weekly.forEach((w, c) => {
     const t = Math.sqrt(w / stats.weeklyMax);
     const h = 2 + BARS_MAX_H * t;

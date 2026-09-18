@@ -44,6 +44,14 @@
   empty years still get no comet per the fixed decision.
 - Gallery generator stays local and gitignored; the spec records the choice.
 
+### Review cycles
+
+- Codex cycle 1 (7d1115b): 3×P2 — README example pinned `@v1` while
+  documenting the v2 input (→ `@v2`); busiest weekday defaulted to `Sun`
+  when no parsed date carried contributions (→ `—`); 39-char usernames
+  overflowed the panel (→ `textLength`/`lengthAdjust` squeeze when the
+  estimated width exceeds the panel). Tests added for both code fixes.
+
 ### Known Issues
 
 - Release `v2.0.0`, `v2` major tag and Marketplace checkbox are post-merge

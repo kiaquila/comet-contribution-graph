@@ -24,7 +24,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: kiaquila/comet-contribution-graph@v1
+      - uses: kiaquila/comet-contribution-graph@v2
         with:
           username: <user>
 ```

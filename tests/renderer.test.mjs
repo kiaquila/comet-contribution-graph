@@ -102,6 +102,31 @@ test("orbit panel: username title is optional, stats are present", () => {
   assert.ok(named.includes(">WEEKLY VOLUME<"));
 });
 
+test("orbit: 39-char username is squeezed into the panel, short one is not", () => {
+  const days = loadFixture("normal-user");
+  const base = { theme: DARK_THEME, animated: false, seed: 42 };
+  const long = "a".repeat(39);
+  const squeezed = renderCometSVG(days, { ...base, username: long });
+  const re = new RegExp(
+    `<text[^>]*textLength="532\\.00" lengthAdjust="spacingAndGlyphs">${long.toUpperCase()}</text>`,
+  );
+  assert.match(squeezed, re);
+  const plain = renderCometSVG(days, { ...base, username: "kiaquila" });
+  assert.ok(!plain.includes("textLength"));
+});
+
+test("orbit: unparsable dates keep totals but yield no busiest weekday", () => {
+  const days = [
+    { date: "not-a-date", count: 7 },
+    { date: "also-bad", count: 3 },
+  ];
+  const svg = renderCometSVG(days, { theme: DARK_THEME, animated: false });
+  assert.ok(svg.includes(">10<"), "sun total still counts the days");
+  assert.ok(svg.includes(">2d<"), "streak still counts the days");
+  assert.ok(!svg.includes(">Sun<"), "must not default to Sunday");
+  assert.ok(!svg.includes("NaN"));
+});
+
 test("orbit: empty year renders zero stats and no comet", () => {
   const days = loadFixture("empty-year");
   const svg = renderCometSVG(days, {
