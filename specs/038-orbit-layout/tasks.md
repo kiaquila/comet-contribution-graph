@@ -20,7 +20,7 @@
 
 - [x] T011 Grid byte-identity check vs `main` snapshots (0 mismatches).
 - [x] T012 Visual review of orbit samples (kiaquila / staks-sor / yeachan-heo / bcherny / empty-year / single-day) in Chrome.
-- [ ] T013 `pnpm run preflight` green locally.
+- [x] T013 `pnpm run preflight` green locally (140 tests, check:dist, format, html, js).
 - [ ] T014 PR opened, `@codex review` posted by the owner's `gh`, all checks green, threads resolved.
 - [ ] T015 Merge after a 2-minute hold once merge-ready.
 
