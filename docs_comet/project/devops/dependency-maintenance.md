@@ -86,3 +86,7 @@ request a human-authored current-head AI review before merge.
   immutable commit pins, preserve the Claude workflow contract, and verify
   both the complete preflight chain and the fail-closed OSV scan before the
   final-head Codex review.
+- `@types/node` 26.4.1 → 26.5.1 and html-validate 11.14.0 → 11.15.0:
+  require a frozen lockfile install, strict type checking, prototype linting,
+  HTML validation, Action distribution verification, and the complete
+  preflight chain without relaxing configuration.
