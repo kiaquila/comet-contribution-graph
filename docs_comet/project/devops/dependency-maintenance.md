@@ -81,3 +81,8 @@ request a human-authored current-head AI review before merge.
   and verify prototype linting plus the complete preflight chain on ESLint
   10.10.0; resolve its lockfile update without reverting the grouped tooling
   versions already merged through PR #44.
+- `anthropics/claude-code-action` 1.0.217 → 1.0.224 and
+  `google/osv-scanner-action/osv-scanner-action` 2.5.1 → 2.6.0: retain
+  immutable commit pins, preserve the Claude workflow contract, and verify
+  both the complete preflight chain and the fail-closed OSV scan before the
+  final-head Codex review.
