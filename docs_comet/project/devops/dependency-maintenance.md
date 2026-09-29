@@ -90,3 +90,7 @@ request a human-authored current-head AI review before merge.
   require a frozen lockfile install, strict type checking, prototype linting,
   HTML validation, Action distribution verification, and the complete
   preflight chain without relaxing configuration.
+- `anthropics/claude-code-action` 1.0.224 → 1.0.231: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, and prompts, and verify the
+  complete preflight chain before the final-head Codex review.
