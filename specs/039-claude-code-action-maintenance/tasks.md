@@ -11,13 +11,15 @@
       changes.
 - [x] T004 Add the complete feature-memory triad for this control-plane update.
 - [x] T005 Update the durable dependency-maintenance record for v1.0.231.
+- [x] T006 Raise the existing `undici` override to 6.28.1, refresh the lockfile,
+      and rebuild the checked-in Action distribution to clear the OSV finding.
 
 ## Verification
 
-- [x] T006 Run `pnpm run preflight` on the final local head (142 tests passed).
-- [ ] T007 Publish the final head and confirm all GitHub checks are green.
-- [ ] T008 Request final-head Codex review and resolve every review thread.
-- [ ] T009 Observe the two-minute merge-ready hold and merge PR #49.
+- [x] T007 Run `pnpm run preflight` on the final local head (142 tests passed).
+- [ ] T008 Publish the final head and confirm all GitHub checks are green.
+- [ ] T009 Request final-head Codex review and resolve every review thread.
+- [ ] T010 Observe the two-minute merge-ready hold and merge PR #49.
 
 ## Process Memory
 
@@ -33,6 +35,8 @@
 - Use a full immutable commit SHA and retain the existing `# v1` annotation.
 - Update the existing durable dependency-maintenance ledger rather than adding
   a second overlapping process document.
+- Fix the newly published `undici` advisory through the repository's existing
+  override instead of weakening OSV or adding a new direct dependency.
 
 ### Known Issues
 
