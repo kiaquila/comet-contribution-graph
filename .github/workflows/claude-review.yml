@@ -103,7 +103,7 @@ jobs:
           ref: ${{ steps.pr.outputs.checkout_ref }}
 
       - name: Run Claude review agent
-        uses: anthropics/claude-code-action@51db78a4b844e144f8d02425cb280435c04a3474 # v1
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
