@@ -32,7 +32,7 @@
   "devDependencies": {
     "@types/node": "^26.6.2",
     "@vercel/ncc": "^0.45.0",
-    "eslint": "^10",
+    "eslint": "10.10.0",
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^74",
     "globals": "^17",

@@ -97,3 +97,8 @@ request a human-authored current-head AI review before merge.
   maintenance branch raises the existing `undici` override from 6.28.0 to
   6.28.1 and rebuilds the Action distribution to remediate
   `GHSA-3wwx-pv8p-q78v` without suppressing the OSV gate.
+- `@types/node` 26.5.1 → 26.6.2 and html-validate 11.15.0 → 11.16.0: require a
+  frozen lockfile install, strict type checking, prototype linting, HTML
+  validation, and the complete preflight chain. ESLint 10.11.0 is deferred: it
+  crashes with `eslint-plugin-html` 8.2.0, while upstream's 8.2.1 fix for issue
+  #342 is still below the repository's seven-day `minimumReleaseAge` threshold.
