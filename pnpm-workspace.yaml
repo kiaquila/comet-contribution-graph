@@ -1,1 +1,3 @@
 minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - source-map-js@1.2.2
