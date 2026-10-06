@@ -3,7 +3,7 @@
 ## Goal
 
 Upgrade `eslint-plugin-unicorn` from v74 to v76 while preserving the
-repository's prototype lint policy and ESLint 10.10.0 toolchain.
+repository's prototype lint policy on the current ESLint 10.11.0 toolchain.
 
 ## Scope
 
@@ -25,7 +25,7 @@ Out of scope:
 ## Acceptance Criteria
 
 1. `package.json` requests `eslint-plugin-unicorn` v76 and the lockfile resolves
-   v76 against ESLint 10.10.0.
+   v76 against ESLint 10.11.0.
 2. The merged lockfile retains `source-map-js` 1.2.2 and its exact release-age
    exception.
 3. A frozen install, prototype lint, and the full preflight chain pass without

@@ -4,7 +4,7 @@
 
 - [x] Merge current `main` into the Dependabot branch.
 - [x] Resolve the lockfile conflict with Unicorn v76 and `source-map-js` 1.2.2.
-- [x] Preserve ESLint 10.10.0 and the existing flat-config lint policy.
+- [x] Preserve ESLint 10.11.0 and the existing flat-config lint policy.
 - [x] Add complete feature memory and durable maintenance evidence.
 
 ## Verification

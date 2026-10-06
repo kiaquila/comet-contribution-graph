@@ -18,7 +18,7 @@
   repository does not enable those rules, so the compatibility test remains
   loading and executing the existing flat config unchanged.
 - Upstream requires Node 22+ and ESLint 10.4+; the repository uses Node 24+ and
-  ESLint 10.10.0.
+  ESLint 10.11.0.
 
 ## Risks
 
