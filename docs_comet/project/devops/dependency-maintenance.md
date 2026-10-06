@@ -102,3 +102,8 @@ request a human-authored current-head AI review before merge.
   validation, and the complete preflight chain. ESLint 10.11.0 is deferred: it
   crashes with `eslint-plugin-html` 8.2.0, while upstream's 8.2.1 fix for issue
   #342 is still below the repository's seven-day `minimumReleaseAge` threshold.
+- ESLint 10.10.0 → 10.11.0, html-validate 11.16.0 → 11.16.1, and Prettier
+  3.9.6 → 3.9.9: require a frozen lockfile install and the complete preflight
+  chain without relaxing validation. The lockfile must pair ESLint 10.11.0
+  with `eslint-plugin-html` 8.2.1, the now-eligible upstream fix for the
+  processor incompatibility recorded in the preceding maintenance update.
