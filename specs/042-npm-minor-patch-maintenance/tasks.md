@@ -7,15 +7,17 @@
       `eslint-plugin-html` 8.2.1 processor fix.
 - [x] T003 Add complete feature memory for the dependency-only update.
 - [x] T004 Update the durable dependency-maintenance ledger.
+- [x] T005 Raise `source-map-js` to 1.2.2 through the existing override and
+      exempt only the patched version from the release-age window.
 
 ## Verification
 
-- [x] T005 Complete a frozen lockfile install and run `pnpm run preflight`
+- [x] T006 Complete a frozen lockfile install and run `pnpm run preflight`
       (142 tests passed).
-- [ ] T006 Publish the final head and request current-head Codex review.
-- [ ] T007 Confirm every required GitHub gate is green and every review thread
+- [ ] T007 Publish the final head and request current-head Codex review.
+- [ ] T008 Confirm every required GitHub gate is green and every review thread
       is resolved.
-- [ ] T008 Observe the two-minute merge-ready hold and merge PR #52.
+- [ ] T009 Observe the two-minute merge-ready hold and merge PR #52.
 
 ## Process Memory
 
@@ -29,6 +31,8 @@
 - Accept the grouped update as proposed because the now-eligible
   `eslint-plugin-html` 8.2.1 release fixes the ESLint 10.11 processor crash.
 - Keep all validation and supply-chain policies unchanged.
+- Remediate the new `source-map-js` advisory with a narrow override rather
+  than weakening or suppressing the OSV gate.
 
 ### Known Issues
 

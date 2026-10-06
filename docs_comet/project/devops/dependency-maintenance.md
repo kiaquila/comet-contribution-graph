@@ -106,4 +106,7 @@ request a human-authored current-head AI review before merge.
   3.9.6 → 3.9.9: require a frozen lockfile install and the complete preflight
   chain without relaxing validation. The lockfile must pair ESLint 10.11.0
   with `eslint-plugin-html` 8.2.1, the now-eligible upstream fix for the
-  processor incompatibility recorded in the preceding maintenance update.
+  processor incompatibility recorded in the preceding maintenance update. The
+  same branch raises transitive `source-map-js` to 1.2.2 and exempts only that
+  patched version from the release-age window to remediate
+  `GHSA-68fv-2mgg-jv7q` without suppressing the OSV gate.

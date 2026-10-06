@@ -14,6 +14,8 @@ In scope:
   `eslint-plugin-html` 8.2.1 processor fix.
 - Update html-validate from 11.16.0 to 11.16.1.
 - Update Prettier from 3.9.6 to 3.9.9.
+- Raise the transitive `source-map-js` resolution to 1.2.2 to clear
+  `GHSA-68fv-2mgg-jv7q` from the fail-closed OSV gate.
 - Accept the corresponding lockfile updates and record verification evidence.
 
 Out of scope:
@@ -34,12 +36,16 @@ Out of scope:
    formatting, and all tests pass through `pnpm run preflight`.
 5. All required GitHub checks pass on the final head and current-head Codex
    review has no unresolved blocking findings.
+6. The lockfile resolves `source-map-js` 1.2.2 or newer without suppressing
+   vulnerability scanning; only the exact patched version is exempted from the
+   release-age window.
 
 ## Negative Scenarios
 
 - Validation configuration is weakened to accommodate a dependency regression.
 - ESLint 10.11.0 is paired with the incompatible `eslint-plugin-html` 8.2.0.
 - The frozen install rewrites the lockfile unexpectedly.
+- The OSV advisory is suppressed instead of remediated.
 - The regenerated Action distribution differs from the checked-in artifact.
 - Review evidence from an earlier head is treated as current.
 

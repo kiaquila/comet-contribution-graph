@@ -51,7 +51,8 @@
       "undici": "^6.28.1",
       "brace-expansion@^1.1.7": "^1.1.18",
       "brace-expansion@^5.0.0": "^5.0.9",
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.1",
+      "source-map-js": "^1.2.2"
     }
   }
 }
