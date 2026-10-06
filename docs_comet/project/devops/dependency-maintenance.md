@@ -102,3 +102,7 @@ request a human-authored current-head AI review before merge.
   validation, and the complete preflight chain. ESLint 10.11.0 is deferred: it
   crashes with `eslint-plugin-html` 8.2.0, while upstream's 8.2.1 fix for issue
   #342 is still below the repository's seven-day `minimumReleaseAge` threshold.
+- `anthropics/claude-code-action` 1.0.231 → 1.0.236: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, and prompts, and verify the
+  complete preflight chain before the final-head Codex review.
