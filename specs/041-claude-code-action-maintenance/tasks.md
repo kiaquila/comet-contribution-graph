@@ -10,6 +10,9 @@
 - [x] Preserve the two action reference updates without policy changes.
 - [x] Add complete feature memory for the maintenance update.
 - [x] Update the durable dependency-maintenance record.
+- [x] Raise `source-map-js` to 1.2.2 through the existing override mechanism.
+- [x] Exempt only `source-map-js@1.2.2` from the release-age window so the
+      security fix can install immediately.
 
 ## Verification
 
@@ -22,3 +25,7 @@
 
 - Keep the update dependency-only and retain immutable SHA pinning.
 - Do not enable or otherwise modify the dormant Claude review backend.
+- Clear the newly published advisory with a narrow override rather than
+  weakening the OSV gate.
+- Retain the seven-day global cooldown and exempt only the patched package
+  version, following pnpm's documented security-fix mechanism.

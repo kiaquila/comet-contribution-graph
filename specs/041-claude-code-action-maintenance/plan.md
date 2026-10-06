@@ -3,13 +3,15 @@
 ## Summary
 
 Preserve Dependabot's two immutable action-SHA updates, add the required
-feature memory and durable maintenance record, then validate the complete gate
-chain before requesting final-head Codex review.
+feature memory and durable maintenance record, raise the transitive
+`source-map-js` security floor, then validate the complete gate chain before
+requesting final-head Codex review.
 
 ## Scope Boundaries
 
-- In scope: the two Claude workflow references, feature memory, and dependency
-  maintenance documentation.
+- In scope: the two Claude workflow references, the narrow `source-map-js`
+  security override and exact-version release-age exception, feature memory,
+  and dependency maintenance documentation.
 - Out of scope: workflow behavior, permissions, prompts, secrets, unrelated
   dependencies, and product code.
 
@@ -25,6 +27,7 @@ chain before requesting final-head Codex review.
 - Inspect the workflow diff for the exact v1.0.236 SHA and no other behavior
   changes.
 - Run `pnpm run preflight`.
+- Confirm OSV no longer reports `GHSA-68fv-2mgg-jv7q`.
 - Confirm the required GitHub checks, current-head Codex review, mergeability,
   and review-thread state before merge.
 

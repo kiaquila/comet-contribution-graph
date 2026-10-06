@@ -13,6 +13,8 @@ In scope:
 - Keep Dependabot's immutable action SHA update in `.github/workflows/claude-agent.yml`
   and `.github/workflows/claude-review.yml`.
 - Record the maintenance intent and verification evidence.
+- Raise the transitive `source-map-js` resolution to 1.2.2 to clear
+  `GHSA-68fv-2mgg-jv7q` from the fail-closed OSV gate.
 
 Out of scope:
 
@@ -27,6 +29,9 @@ Out of scope:
 2. No workflow behavior changes beyond the immutable action reference.
 3. Repository preflight and all required GitHub checks pass.
 4. Final-head Codex review has no unresolved blocking findings.
+5. The lockfile resolves `source-map-js` 1.2.2 or newer without suppressing
+   vulnerability scanning; only the exact patched version is exempted from the
+   release-age window.
 
 ## Negative Scenarios
 
