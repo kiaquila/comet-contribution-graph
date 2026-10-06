@@ -116,3 +116,8 @@ request a human-authored current-head AI review before merge.
   with `eslint-plugin-html` 8.2.1, the now-eligible upstream fix for the
   processor incompatibility recorded in the preceding maintenance update, and
   retain the `source-map-js` advisory remediation already present on main.
+- `eslint-plugin-unicorn` v74 → v76: preserve the existing flat-config rule set,
+  run against ESLint 10.11.0, retain the patched `source-map-js` 1.2.2
+  resolution, and verify prototype linting plus the complete preflight chain.
+  New v75 rules and v76 option defaults are not enabled as part of dependency
+  maintenance.
