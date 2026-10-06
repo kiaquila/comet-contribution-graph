@@ -110,3 +110,7 @@ request a human-authored current-head AI review before merge.
   remediate `GHSA-68fv-2mgg-jv7q` without suppressing the OSV gate. The global
   seven-day release cooldown remains intact; only `source-map-js@1.2.2` is
   exempted so the security fix can install immediately.
+- `eslint-plugin-unicorn` v74 → v76: preserve the existing flat-config rule set,
+  keep ESLint 10.10.0, retain the patched `source-map-js` 1.2.2 resolution, and
+  verify prototype linting plus the complete preflight chain. New v75 rules and
+  v76 option defaults are not enabled as part of dependency maintenance.
