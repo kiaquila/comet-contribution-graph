@@ -102,11 +102,17 @@ request a human-authored current-head AI review before merge.
   validation, and the complete preflight chain. ESLint 10.11.0 is deferred: it
   crashes with `eslint-plugin-html` 8.2.0, while upstream's 8.2.1 fix for issue
   #342 is still below the repository's seven-day `minimumReleaseAge` threshold.
+- `anthropics/claude-code-action` 1.0.231 → 1.0.236: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, and prompts, and verify the
+  complete preflight chain before the final-head Codex review. The same
+  maintenance branch raises transitive `source-map-js` from 1.2.1 to 1.2.2 to
+  remediate `GHSA-68fv-2mgg-jv7q` without suppressing the OSV gate. The global
+  seven-day release cooldown remains intact; only `source-map-js@1.2.2` is
+  exempted so the security fix can install immediately.
 - ESLint 10.10.0 → 10.11.0, html-validate 11.16.0 → 11.16.1, and Prettier
   3.9.6 → 3.9.9: require a frozen lockfile install and the complete preflight
   chain without relaxing validation. The lockfile must pair ESLint 10.11.0
   with `eslint-plugin-html` 8.2.1, the now-eligible upstream fix for the
-  processor incompatibility recorded in the preceding maintenance update. The
-  same branch raises transitive `source-map-js` to 1.2.2 and exempts only that
-  patched version from the release-age window to remediate
-  `GHSA-68fv-2mgg-jv7q` without suppressing the OSV gate.
+  processor incompatibility recorded in the preceding maintenance update, and
+  retain the `source-map-js` advisory remediation already present on main.

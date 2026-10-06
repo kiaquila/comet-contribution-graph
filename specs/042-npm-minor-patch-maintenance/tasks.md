@@ -7,8 +7,8 @@
       `eslint-plugin-html` 8.2.1 processor fix.
 - [x] T003 Add complete feature memory for the dependency-only update.
 - [x] T004 Update the durable dependency-maintenance ledger.
-- [x] T005 Raise `source-map-js` to 1.2.2 through the existing override and
-      exempt only the patched version from the release-age window.
+- [x] T005 Merge current main and retain its `source-map-js` 1.2.2 advisory
+      remediation and exact-version release-age exception.
 
 ## Verification
 

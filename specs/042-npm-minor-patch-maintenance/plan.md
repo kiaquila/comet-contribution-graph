@@ -5,8 +5,8 @@
 2. Confirm that `eslint-plugin-html` 8.2.1 accompanies ESLint 10.11.0 and fixes
    the processor incompatibility encountered in the previous maintenance PR.
 3. Install the exact lockfile with the repository's release-age policy intact.
-4. Raise the vulnerable transitive `source-map-js` package to 1.2.2 with a
-   narrow override and exact-version release-age exception.
+4. Merge current main so the branch retains its `source-map-js` 1.2.2 advisory
+   remediation and exact-version release-age exception.
 5. Add complete feature memory and update the durable dependency-maintenance
    ledger.
 6. Run the full preflight chain, including prototype linting, HTML validation,
