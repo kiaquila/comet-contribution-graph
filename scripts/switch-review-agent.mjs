@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { rerunAiReviewForPrHead } from "./ai-review-rerun.mjs";
 
 const args = process.argv.slice(2);
 const options = {
@@ -85,6 +86,14 @@ if (!options.pr) {
   options.pr = String(JSON.parse(json).number);
 }
 
+const pr = JSON.parse(
+  run("gh", ["pr", "view", options.pr, "--json", "headRefOid", ...repoArgs]),
+);
+const repository =
+  options.repo ||
+  JSON.parse(run("gh", ["repo", "view", "--json", "nameWithOwner"]))
+    .nameWithOwner;
+
 // Step 1: flip the AI_REVIEW_AGENT repository variable.
 run("gh", [
   "variable",
@@ -97,80 +106,35 @@ run("gh", [
 console.log(`Repository variable AI_REVIEW_AGENT set to ${options.to}.`);
 
 // Step 2: post the native trigger comment on the target PR.
-const triggerBody = triggerBodies[options.to];
+const triggerBody = `${triggerBodies[options.to]} ${pr.headRefOid}`;
+let evidenceAt;
 if (!options.comment) {
   console.log("Skipped native trigger comment: --no-comment was used.");
 } else {
+  evidenceAt = new Date().toISOString();
   run("gh", ["pr", "comment", options.pr, "--body", triggerBody, ...repoArgs]);
   console.log(`Posted "${triggerBody}" on PR #${options.pr}.`);
 }
 
 // Step 3: rerun the most recent failed AI Review run at the current head SHA.
 if (options.rerun) {
-  const prJson = run("gh", [
-    "pr",
-    "view",
-    options.pr,
-    "--json",
-    "headRefOid",
-    ...repoArgs,
-  ]);
-  const headSha = JSON.parse(prJson).headRefOid;
-
-  // Server-side filter by commit SHA so the rerun helper stays correct
-  // in busy repos (previously capped client-side at 10 newest runs,
-  // which in high-activity repos could miss the latest failed AI Review
-  // for the current head and silently skip rerun).
-  const runsJson = run("gh", [
-    "run",
-    "list",
-    "--workflow",
-    "ai-review.yml",
-    "--commit",
-    headSha,
-    "--limit",
-    "50",
-    "--json",
-    "databaseId,conclusion,headSha",
-    ...repoArgs,
-  ]);
-  const runs = JSON.parse(runsJson);
-  // Match any non-success terminal conclusion so the helper also
-  // rescues Gemini-silent-timeout runs and cancelled reruns, not just
-  // explicit failures.
-  const rerunableConclusions = new Set([
-    "failure",
-    "timed_out",
-    "cancelled",
-    "startup_failure",
-    "action_required",
-  ]);
-  const target = runs.find(
-    (entry) =>
-      entry.headSha === headSha && rerunableConclusions.has(entry.conclusion),
-  );
-
-  if (target) {
-    // `gh run rerun --failed` only reruns jobs whose conclusion is
-    // literally `failure`. For runs that ended in `cancelled`,
-    // `timed_out`, `startup_failure`, or `action_required` there
-    // may be no `failure`-conclusion jobs at all, so `--failed`
-    // would fail the command. Rerun the whole run in those cases
-    // and keep the targeted `--failed` behavior only for actual
-    // job failures.
-    const rerunArgs = ["run", "rerun", String(target.databaseId), ...repoArgs];
-    if (target.conclusion === "failure") {
-      rerunArgs.push("--failed");
-    }
-    run("gh", rerunArgs);
-    console.log(
-      `Re-run dispatched for AI Review run ${target.databaseId} (conclusion: ${target.conclusion}).`,
-    );
-  } else {
-    console.log(
-      "No rerunable AI Review run found for the current head SHA; skipping rerun.",
-    );
-  }
+  const result = await rerunAiReviewForPrHead({
+    token: "gh-auth",
+    repository,
+    prNumber: options.pr,
+    headSha: pr.headRefOid,
+    evidenceAt,
+    request: async (_token, _repository, path, requestOptions = {}) => {
+      const output = run("gh", [
+        "api",
+        path,
+        "--method",
+        requestOptions.method || "GET",
+      ]);
+      return output ? JSON.parse(output) : null;
+    },
+  });
+  console.log(result.message);
 } else {
   console.log("Skipped AI Review rerun because --no-rerun was used.");
 }

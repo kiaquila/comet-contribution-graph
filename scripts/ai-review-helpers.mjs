@@ -201,24 +201,100 @@ export function extractCodexPriority(body) {
   return match ? Number(match[1]) : null;
 }
 
+// Signals wake evaluation; only the classifiers below can establish a verdict.
+export function isCodexReviewCommentSignal(body) {
+  return /^(?:Codex Review:|<!-- codex-review-receipt:|<!-- codex-pull-request-review-summary)/i.test(
+    String(body || "").trim(),
+  );
+}
+
+export function reviewCommentTimestamp(comment) {
+  return comment?.updated_at || comment?.created_at;
+}
+
 export function isAcceptableCodexSummaryComment(
   comment,
   headSha,
   requestMarker = null,
   config = {},
 ) {
-  const body = String(comment?.body || "").trim();
-  const login = normalizeLogin(comment?.user?.login);
-  if (!isTrustedReviewLogin(login, "codex", config)) return false;
-  if (!/^Codex Review:/i.test(body)) return false;
-  if (!/did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues/i.test(body))
+  if (!isTrustedReviewLogin(comment?.user?.login, "codex", config))
+    return false;
+  let body = String(comment?.body || "").trim();
+  const receipt = "<!-- codex-review-receipt:v1 -->";
+  const isReceipt = body.startsWith(receipt);
+  if (isReceipt) body = body.slice(receipt.length).trim();
+  // Never strip arbitrary HTML, multiple markers, or an unknown receipt version.
+  if (/<!--|codex-review-receipt/i.test(body)) return false;
+  // The native About block is presentation only, not review evidence.
+  const about = body.match(
+    /\s*<details>\s*<summary>\s*(?:ℹ️\s*)?About Codex in GitHub\s*<\/summary>[^]*<\/details>\s*$/i,
+  );
+  if (about) {
+    if (
+      (about[0].match(/<details>/gi) || []).length !== 1 ||
+      containsBlockingSeverity(about[0], "codex")
+    )
+      return false;
+    body = body.slice(0, about.index).trim();
+  }
+  if (
+    !/^Codex Review:\s*did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues\b/i.test(
+      body,
+    )
+  )
+    return false;
+  const verdictTail = body
+    .split(/\r?\n/)[0]
+    .replace(
+      /^Codex Review:\s*did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues\b/i,
+      "",
+    );
+  if (
+    /\b(?:issues?|findings?|problems?|blocking|blocked|errors?|not|unfinished|in_progress|cancelled)\b/i.test(
+      verdictTail,
+    )
+  )
+    return false;
+  if (containsBlockingSeverity(body, "codex")) return false;
+  if (
+    /\b(?:but|however|found|pending|incomplete|failed|changes requested|unresolved)\b/i.test(
+      body,
+    )
+  )
     return false;
 
-  const shortSha = String(headSha || "").slice(0, 10);
-  if (shortSha && (body.includes(headSha) || body.includes(shortSha)))
-    return true;
-
+  const lines = body.split(/\r?\n/).filter((line) => line.trim());
   if (
+    lines
+      .slice(1)
+      .some(
+        (line) => !/^\*\*Reviewed commit:\*\* `[a-f0-9]{10,40}`$/i.test(line),
+      )
+  )
+    return false;
+  const fields = [
+    ...body.matchAll(/^\*\*Reviewed commit:\*\* `([a-f0-9]{10,40})`$/gim),
+  ];
+  if (fields.length > 1) return false;
+  if (
+    isReceipt &&
+    (!/^[a-f0-9]{40}$/i.test(headSha || "") || fields.length !== 1)
+  )
+    return false;
+
+  const shas = [...body.matchAll(/\b[a-f0-9]{7,40}\b/gi)].map(
+    (match) => match[0],
+  );
+  if (shas.length > 0) {
+    return shas.every(
+      (sha) =>
+        (sha.length === 10 || sha.length === 40) &&
+        String(headSha || "").startsWith(sha),
+    );
+  }
+  if (
+    isReceipt ||
     !requestMarker ||
     requestMarker.agent !== "codex" ||
     requestMarker.sha !== headSha
@@ -230,12 +306,103 @@ export function isAcceptableCodexSummaryComment(
       requestMarker.commentCreatedAt ||
       "",
   );
+  // Only the legacy format may use timestamp/timeline proof without a SHA.
   const createdAt = Date.parse(comment?.created_at || "");
   return (
     Number.isFinite(requestedAt) &&
     Number.isFinite(createdAt) &&
     createdAt >= requestedAt
   );
+}
+
+export function evaluateCodexReviewEvidence({
+  reviews = [],
+  reviewComments = [],
+  comments = [],
+  threads = [],
+  timeline = [],
+  headSha,
+  requestMarker,
+  config = {},
+}) {
+  // Findings on any head remain blocking while their native thread is open.
+  if (
+    threads.some(
+      (thread) =>
+        !thread.isResolved &&
+        thread.comments.nodes.some(
+          (comment) =>
+            isTrustedReviewLogin(comment.author?.login, "codex", config) &&
+            (containsBlockingSeverity(comment.body, "codex") ||
+              extractCodexPriority(comment.body) === null),
+        ),
+    )
+  )
+    return "fail";
+
+  const evidence = reviews
+    .map((review) => ({
+      result: classifyCodexNativeReview(
+        review,
+        reviewComments,
+        headSha,
+        config,
+      ),
+      at: review.submitted_at,
+    }))
+    .filter((entry) => entry.result !== null);
+  const triggerAt =
+    requestMarker?.sourceCommentCreatedAt ||
+    requestMarker?.requestedAt ||
+    requestMarker?.commentCreatedAt;
+  for (const comment of comments) {
+    const body = String(comment.body || "").trim();
+    if (
+      !isTrustedReviewLogin(comment.user?.login, "codex", config) ||
+      !isCodexReviewCommentSignal(body) ||
+      body.startsWith("<!-- codex-pull-request-review-summary")
+    )
+      continue;
+    const at = reviewCommentTimestamp(comment);
+    const shas = [
+      ...body.split(/<details>/i)[0].matchAll(/\b[a-f0-9]{7,40}\b/gi),
+    ].map((match) => match[0]);
+    const namesHead = shas.some(
+      (sha) =>
+        (sha.length === 10 || sha.length === 40) && headSha.startsWith(sha),
+    );
+    const afterRequest =
+      requestMarker?.sha === headSha && Date.parse(at) >= Date.parse(triggerAt);
+    if (!afterRequest || (!namesHead && shas.length > 0)) continue;
+    let result = "pending";
+    if (
+      isAcceptableCodexSummaryComment(
+        comment,
+        headSha,
+        requestMarker,
+        config,
+      ) &&
+      (namesHead ||
+        !hasHeadUpdateBetweenTimestamps(
+          timeline,
+          triggerAt,
+          comment.created_at,
+        ))
+    )
+      result = "pass";
+    else if (containsBlockingSeverity(body.split(/<details>/i)[0], "codex"))
+      result = "fail";
+    evidence.push({ result, at });
+  }
+  // A newer non-passing result cannot be hidden by an older no-findings comment.
+  // On timestamp ties prefer failure, then pending, over success.
+  const rank = { fail: 0, pending: 1, pass: 2 };
+  evidence.sort(
+    (left, right) =>
+      Date.parse(right.at || "") - Date.parse(left.at || "") ||
+      rank[left.result] - rank[right.result],
+  );
+  return evidence[0]?.result || (requestMarker ? "pending" : "missing_marker");
 }
 
 export function hasHeadUpdateBetweenTimestamps(
@@ -272,7 +439,7 @@ export function classifyCodexNativeReview(
   config = {},
 ) {
   if (!review) return null;
-  if (review.commit_id && headSha && review.commit_id !== headSha) return null;
+  if (!headSha || review.commit_id !== headSha) return null;
   const login = normalizeLogin(review.user?.login);
   if (!isTrustedReviewLogin(login, "codex", config)) return null;
 
@@ -294,7 +461,13 @@ export function classifyCodexNativeReview(
   const priorities = commentsForReview.map((comment) =>
     extractCodexPriority(comment.body),
   );
-  if (priorities.some((priority) => priority === null)) return "fail";
+  if (
+    priorities.some((priority) => priority === null) ||
+    commentsForReview.some((comment) =>
+      containsBlockingSeverity(comment.body, "codex"),
+    )
+  )
+    return "fail";
   return Math.min(...priorities) <= 2 ? "fail" : "pass";
 }
 
