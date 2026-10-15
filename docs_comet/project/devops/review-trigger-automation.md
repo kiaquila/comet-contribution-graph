@@ -27,13 +27,42 @@ pnpm run review:switch -- --to <agent>
 The script:
 
 1. flips the `AI_REVIEW_AGENT` repository variable if different from current
-2. posts the correct native trigger comment (`@codex review` or `/gemini review`) using the local `gh` CLI auth — human-authored, therefore trusted
+2. posts the correct native trigger comment (`@codex review <full-head-sha>` or `/gemini review <full-head-sha>`) using the local `gh` CLI auth — human-authored, therefore trusted
 3. records a trusted current-head review-request marker through `AI Command Policy`
-4. reruns the most recent failed `AI Review` job on the current PR head
+4. uses the shared rerun selector for the latest `AI Review` run on the exact PR head; active runs and already-evaluated signals are deduplicated
 
 When the selected backend posts trusted review evidence, `AI Review Rerun`
 reruns the required `AI Review` check again so it can validate the evidence
 without a long polling window.
+
+Both `created` and `edited` native receipt and summary-comment events reach the
+workflow and runtime identity filter. Edited comments use `updated_at` for
+wakeup even when their `created_at` predates the current request. Wakeup is not
+acceptance: evidence validation remains in the trusted gate.
+
+When evidence arrives during an active gate, the `AI Review` `workflow_run`
+completion observer reloads trusted evidence and request-marker timestamps. It
+requeues only a signal at or after the latest attempt's `run_started_at`;
+following attempts therefore cannot loop on unchanged evidence. New negative
+evidence can also recheck a previous success. Selection uses the newest run,
+never an older failure hidden behind a newer success. Wakeups are serialized;
+live PR HEAD is checked before selection and immediately before rerun.
+
+The workflow completion observer only handles the repository's `AI Review`
+`pull_request` workflow path. It reads PR metadata and review evidence and
+executes scripts checked out from the default branch; PR code and artifacts are
+never executed by this privileged path.
+
+### First rollout of review-parser changes
+
+A parser change in a PR cannot teach the default-branch gate its new format.
+Request a real native formal review on the final head, which the old gate can
+already validate, and rerun that PR's existing gate if needed. Keep the same
+head and native review evidence. Do not replace the gate with a local verdict,
+manually publish a passing check, switch off protection, or execute PR scripts
+with write privileges. If the connector produces only receipts the old gate
+cannot parse and cannot submit a formal review, retain the PR and report the
+bootstrap blocker; an ordinary rerun still executes the old parser.
 
 The marker author is configured by `aiReviewMarkerAuthorLogin` in
 `.comet-control/config.json`. The default remains `github-actions[bot]`, but it

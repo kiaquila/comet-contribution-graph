@@ -20,10 +20,24 @@ Full backend matrix and mitigation Tiers: see `review-trigger-automation.md`. Ca
 - `P0` to `P2` findings block merge
 - In `trigger_mode=skip`, formal reviews with `commit_id === headSha`
   stay authoritative.
-- Summary-only / setup-error comments are accepted only when they land
-  after a trusted current-head review-request marker. If the summary does not
-  name the head SHA directly, the gate rejects it when a commit or force-push
-  event occurred between the source trigger and summary.
+- No-findings comments support the legacy `Codex Review:` prefix and the native
+  `<!-- codex-review-receipt:v1 -->` prefix. Receipts require exactly one
+  `**Reviewed commit:**` field matching the current full head or its native
+  ten-character abbreviation, plus an explicit no-major-issues verdict.
+  Unknown/duplicate markers, conflicting commit fields, negative/incomplete
+  results, and blocking severities cannot pass.
+- Comment evidence requires a trusted current-head request marker and must be
+  newer than its source trigger. Legacy comments without a SHA retain the
+  timestamp/timeline boundary: intervening commits or force-pushes reject them.
+- Formal reviews require an exact `commit_id`. They remain evidence even if a
+  newer request marker is posted. The newest result wins, with failure taking
+  precedence on timestamp ties. Unresolved blocking or untagged Codex threads
+  on any head block success; P3-only threads retain advisory severity.
+- `<!-- codex-pull-request-review-summary -->` comments, including the embedded
+  `codex-review-state:v1` JSON, only wake evaluation. No schema or status in
+  those summaries is accepted as a verdict. A summary, `Completed`, or a reaction
+  alone never satisfies `AI Review`.
+- The gate verifies live HEAD after reading evidence and rejects stale runs.
 - If evidence is absent, `AI Review` fails fast and is rerun by trusted trigger
   or trusted review-evidence events.
 

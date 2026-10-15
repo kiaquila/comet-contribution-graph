@@ -175,7 +175,9 @@ if (isReview) {
     const rerunResult = await rerunAiReviewForPrHead({
       token,
       repository,
+      prNumber,
       headSha,
+      evidenceAt: new Date().toISOString(),
     });
     console.log(rerunResult.message);
   } catch (error) {
