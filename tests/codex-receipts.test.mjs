@@ -54,6 +54,31 @@ const summary =
   headSha +
   '","has_any_findings":false,"has_unresolved_findings":false,"status":"completed"}} -->\n\n## Codex Review Summary';
 
+test("AI Review always executes default-branch scripts with read-only credentials", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/ai-review.yml", import.meta.url),
+    "utf8",
+  );
+  const refs = [...workflow.matchAll(/^\s+ref: (.+)$/gm)].map(
+    (match) => match[1],
+  );
+  assert.deepEqual(refs, ["${{ github.event.repository.default_branch }}"]);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(
+    workflow,
+    /permissions:\n  contents: read\n  pull-requests: read\n  issues: read\n/,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /: write\b|secrets\.|upload-artifact|download-artifact/,
+  );
+  assert.match(workflow, /run: node scripts\/ai-review-gate\.mjs/);
+  assert.match(
+    workflow,
+    /AI_REVIEW_HEAD_SHA: \$\{\{ steps.pr.outputs.head_sha \}\}/,
+  );
+});
+
 test("observed native receipt and legacy response pass with commit proof", () => {
   for (const body of [
     receipt,
