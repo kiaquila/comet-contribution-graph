@@ -1,6 +1,9 @@
 name: AI Review Rerun
 
 on:
+  workflow_run:
+    workflows: [AI Review]
+    types: [completed]
   pull_request_review:
     types: [submitted]
   issue_comment:
@@ -14,10 +17,16 @@ permissions:
   contents: read
   pull-requests: read
 
+# Serialize wakeups so two receipt/summary events cannot requeue the same run.
+concurrency:
+  group: ai-review-rerun-${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.id }}
+  cancel-in-progress: false
+
 jobs:
   ai-review-rerun:
     name: ai-review-rerun
     if: |
+      github.event_name == 'workflow_run' ||
       (
         github.event_name == 'pull_request_review' &&
         github.event.review.user.type == 'Bot'
@@ -27,6 +36,8 @@ jobs:
         github.event.comment.user.type == 'Bot' &&
         (
           startsWith(github.event.comment.body, 'Codex Review:') ||
+          contains(github.event.comment.body, '<!-- codex-review-receipt:') ||
+          contains(github.event.comment.body, '<!-- codex-pull-request-review-summary') ||
           contains(github.event.comment.body, 'AI_REVIEW_OUTCOME:')
         )
       )

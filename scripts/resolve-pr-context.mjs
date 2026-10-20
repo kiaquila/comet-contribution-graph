@@ -62,6 +62,13 @@ if (!response.ok) {
 }
 
 const pull = await response.json();
+if (
+  event.pull_request?.head?.sha &&
+  event.pull_request.head.sha !== pull.head.sha
+) {
+  throw new Error("PR head changed since this workflow was triggered.");
+}
+
 const result = {
   isPullRequest: true,
   prNumber: String(pull.number),
