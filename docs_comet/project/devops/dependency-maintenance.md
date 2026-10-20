@@ -130,3 +130,9 @@ request a human-authored current-head AI review before merge.
   immutable commit pins, preserve workflow triggers, permissions, inputs,
   secrets, and prompts, and verify both the complete preflight chain and the
   fail-closed OSV scan before the final-head Codex review.
+- Grouped development-tooling maintenance (`@types/node` 26.6.2 → 26.6.5,
+  ESLint 10.11.0 → 10.12.0, `globals` 17.12.0 → 17.13.0, html-validate
+  11.16.1 → 11.16.2, and Prettier 3.9.9 → 3.9.10): requires a frozen
+  lockfile install, strict type checking, prototype linting, HTML validation,
+  Action distribution verification, and the complete preflight chain without
+  relaxing configuration.
