@@ -136,3 +136,7 @@ request a human-authored current-head AI review before merge.
   lockfile install, strict type checking, prototype linting, HTML validation,
   Action distribution verification, and the complete preflight chain without
   relaxing configuration.
+- `eslint-plugin-unicorn` v76 → v77: preserve the existing flat-config rule
+  set, resolve its peer snapshot against ESLint 10.12.0, accept only the
+  corresponding transitive lockfile updates, and verify prototype linting plus
+  the complete preflight chain without relaxing configuration.
