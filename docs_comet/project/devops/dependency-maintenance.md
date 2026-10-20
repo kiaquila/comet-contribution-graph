@@ -125,3 +125,8 @@ request a human-authored current-head AI review before merge.
   and dormant Claude review workflows pinned to the same immutable release
   commit, preserve their triggers, permissions, inputs, secrets, and prompts,
   and verify the complete preflight chain before the final-head Codex review.
+- `anthropics/claude-code-action` 1.0.242 → 1.0.248 and
+  `google/osv-scanner-action/osv-scanner-action` 2.6.0 → 2.7.0: retain
+  immutable commit pins, preserve workflow triggers, permissions, inputs,
+  secrets, and prompts, and verify both the complete preflight chain and the
+  fail-closed OSV scan before the final-head Codex review.
