@@ -10,18 +10,23 @@ on:
         required: true
         type: string
       trigger_mode:
-        description: Review trigger mode; use skip unless a backend explicitly supports automation
+        description: Must be skip; request native review through a human-authored comment
         required: false
         default: skip
         type: string
+      receipt_rollout:
+        description: PR 55 only; validate with the immutable, natively reviewed receipt parser
+        required: false
+        default: false
+        type: boolean
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 concurrency:
   group: >-
@@ -48,10 +53,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # The sole rollout exception is an immutable version already reviewed by
+      # the native connector, not a selectable PR ref. Provenance:
+      # https://github.com/kiaquila/comet-contribution-graph/pull/55#issuecomment-6203485501
+      # No write token, repository secrets, PR artifacts, or dependency install.
       - name: Checkout trusted gate scripts
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.receipt_rollout && '5773da6b5b93d5f91486b2c6d631e56faea4da44' || github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Constrain the one-time receipt rollout
+        if: github.event_name == 'workflow_dispatch' && inputs.receipt_rollout
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ROLLOUT_PR_NUMBER: ${{ inputs.pr_number }}
+          ROLLOUT_WORKFLOW_SHA: ${{ github.sha }}
+          ROLLOUT_WORKFLOW_REF: ${{ github.ref }}
+          SELECTED_AGENT: ${{ vars.AI_REVIEW_AGENT }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          assert.equal(process.env.GITHUB_REPOSITORY, 'kiaquila/comet-contribution-graph');
+          assert.equal(process.env.ROLLOUT_PR_NUMBER, '55');
+          assert.equal(process.env.ROLLOUT_WORKFLOW_REF, 'refs/heads/codex/native-review-receipts');
+          assert.equal(process.env.SELECTED_AGENT || 'codex', 'codex');
+          const response = await fetch('https://api.github.com/repos/kiaquila/comet-contribution-graph/pulls/55', {
+            headers: { authorization: `Bearer ${process.env.GITHUB_TOKEN}`, accept: 'application/vnd.github+json' },
+          });
+          assert.equal(response.ok, true, `Unable to read rollout PR: ${response.status}`);
+          const pull = await response.json();
+          assert.equal(pull.state, 'open');
+          assert.equal(pull.draft, false);
+          assert.equal(pull.head.repo.full_name, process.env.GITHUB_REPOSITORY);
+          assert.equal(pull.base.repo.full_name, process.env.GITHUB_REPOSITORY);
+          assert.equal(pull.base.ref, 'main');
+          assert.equal(pull.head.sha, process.env.ROLLOUT_WORKFLOW_SHA, 'Dispatch must run on the live PR head');
+          NODE
 
       - name: Resolve PR context
         id: pr
@@ -84,9 +122,9 @@ jobs:
             trigger_mode="skip"
           fi
           case "$trigger_mode" in
-            skip|comment) ;;
+            skip) ;;
             *)
-              echo "::error::Unsupported AI_REVIEW_TRIGGER_MODE value: '$trigger_mode'. Allowed: skip, comment."
+              echo "::error::The read-only gate requires trigger_mode=skip. Request native review through a human-authored comment."
               exit 1
               ;;
           esac

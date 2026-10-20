@@ -56,13 +56,34 @@ never executed by this privileged path.
 ### First rollout of review-parser changes
 
 A parser change in a PR cannot teach the default-branch gate its new format.
-Request a real native formal review on the final head, which the old gate can
-already validate, and rerun that PR's existing gate if needed. Keep the same
-head and native review evidence. Do not replace the gate with a local verdict,
-manually publish a passing check, switch off protection, or execute PR scripts
-with write privileges. If the connector produces only receipts the old gate
-cannot parse and cannot submit a formal review, retain the PR and report the
-bootstrap blocker; an ordinary rerun still executes the old parser.
+A genuine compatible formal review can unblock an ordinary rerun. PR #55 instead
+received only the new native receipt, so `ai-review.yml` provides a narrowly
+scoped `receipt_rollout` dispatch for this first deployment:
+
+- The validator is pinned to `5773da6b5b93d5f91486b2c6d631e56faea4da44`,
+  already reviewed by the native connector in
+  [receipt 6203485501](https://github.com/kiaquila/comet-contribution-graph/pull/55#issuecomment-6203485501).
+  Callers cannot choose another validator revision. No live PR scripts,
+  dependencies, or artifacts are executed.
+- The job has only contents, pull-request, and issue read permissions, no
+  repository secrets, and no persisted checkout credentials. The gate always
+  uses `trigger_mode=skip`; native review requests remain human-authored.
+- The guard requires open, ready, same-repository PR #55 targeting `main`, the
+  `codex/native-review-receipts` dispatch branch, Codex policy, and dispatch SHA
+  equal to the live PR head. It rejects other PRs and becomes unusable after #55
+  closes. Ordinary runs still check out default-branch scripts.
+- Request a fresh native review after the final push. Only then dispatch the
+  existing `AI Review` workflow on that exact branch with `pr_number=55` and
+  `receipt_rollout=true`. The pinned validator checks genuine current-head
+  evidence, all blocking threads, and HEAD again before success. A summary or
+  reaction alone still cannot pass.
+
+This is a real read-only validation run, not a manually published check or a
+replacement review. Verify its logged validator SHA, token permissions, final
+PR SHA, and native receipt. All required checks and resolved conversations still
+apply, followed by the full 120-second readiness hold and protected merge.
+Never disable protection or execute PR scripts with write privileges to repair
+bootstrap. Future changes use the upgraded default-branch gate.
 
 The marker author is configured by `aiReviewMarkerAuthorLogin` in
 `.comet-control/config.json`. The default remains `github-actions[bot]`, but it
