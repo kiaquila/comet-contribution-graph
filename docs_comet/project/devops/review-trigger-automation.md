@@ -57,8 +57,8 @@ never executed by this privileged path.
 
 A parser change in a PR cannot teach the default-branch gate its new format.
 A genuine compatible formal review can unblock an ordinary rerun. PR #55 instead
-received only the new native receipt, so `ai-review.yml` provides a narrowly
-scoped `receipt_rollout` dispatch for this first deployment:
+received only the new native receipt, so its existing `pull_request` job uses a
+narrowly scoped exception for this first deployment:
 
 - The validator is pinned to `5773da6b5b93d5f91486b2c6d631e56faea4da44`,
   already reviewed by the native connector in
@@ -69,12 +69,12 @@ scoped `receipt_rollout` dispatch for this first deployment:
   repository secrets, and no persisted checkout credentials. The gate always
   uses `trigger_mode=skip`; native review requests remain human-authored.
 - The guard requires open, ready, same-repository PR #55 targeting `main`, the
-  `codex/native-review-receipts` dispatch branch, Codex policy, and dispatch SHA
+  `codex/native-review-receipts` source branch, Codex policy, and event head SHA
   equal to the live PR head. It rejects other PRs and becomes unusable after #55
-  closes. Ordinary runs still check out default-branch scripts.
-- Request a fresh native review after the final push. Only then dispatch the
-  existing `AI Review` workflow on that exact branch with `pr_number=55` and
-  `receipt_rollout=true`. The pinned validator checks genuine current-head
+  closes. Other PRs and manual dispatches still use default-branch scripts.
+- Request a fresh native review after the final push. After it completes, rerun
+  that head's existing `pull_request` gate if it has already failed waiting for
+  evidence. The pinned validator checks genuine current-head
   evidence, all blocking threads, and HEAD again before success. A summary or
   reaction alone still cannot pass.
 
@@ -84,6 +84,11 @@ PR SHA, and native receipt. All required checks and resolved conversations still
 apply, followed by the full 120-second readiness hold and protected merge.
 Never disable protection or execute PR scripts with write privileges to repair
 bootstrap. Future changes use the upgraded default-branch gate.
+
+A manual dispatch on the head can validate the evidence successfully while the
+PR's separate `pull_request` check suite remains red. It does not replace that
+required run; do not delete failed checks or relax protection. The exception
+therefore runs inside the original PR job, not a second check with the same name.
 
 The marker author is configured by `aiReviewMarkerAuthorLogin` in
 `.comet-control/config.json`. The default remains `github-actions[bot]`, but it

@@ -18,13 +18,13 @@
 All privileged review/rerun scripts continue to come from the default branch.
 Try a real native formal review, already understood by the old gate, for the
 initial rollout. The connector returned only a new receipt for immutable
-`5773da6b5b93d5f91486b2c6d631e56faea4da44`. Pin that reviewed validator in an
-opt-in dispatch restricted to open PR #55, the same repository/branch, Codex
-policy, and the live dispatch head. Give the entire gate job read permissions
+`5773da6b5b93d5f91486b2c6d631e56faea4da44`. Pin that reviewed validator in a
+PR run restricted to open PR #55, the same repository/branch, Codex
+policy, and the live event head. Give the entire gate job read permissions
 only, disable persisted checkout credentials, and require a fresh native review
-of the final workflow head before dispatch. The pinned validator evaluates the
-real final-head evidence; it does not publish a synthetic verdict. Closing #55
-disables this exception. Ordinary runs retain default-branch checkout.
+of the final workflow head before rerunning the PR gate. The pinned validator
+evaluates real final-head evidence; it does not publish a synthetic verdict. Closing #55
+disables this exception. Other PRs and manual runs retain default-branch checkout.
 
 ## Verification
 

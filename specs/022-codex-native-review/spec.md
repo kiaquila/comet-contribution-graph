@@ -10,7 +10,7 @@ trusted-default-branch execution boundaries.
 - Codex receipt/legacy classification, evidence selection, and exact-head safety.
 - Created/edited evidence routing and bounded requeue after an active gate.
 - Local review wrapper, regression tests, and review contract documentation.
-- A PR-55-only read-only dispatch using an immutable natively reviewed validator
+- A PR-55-only read-only PR run using an immutable natively reviewed validator
   for the initial receipt-parser deployment.
 
 ## Acceptance Criteria
@@ -24,7 +24,7 @@ trusted-default-branch execution boundaries.
    once per new evidence timestamp, without stale-head reruns or rerun loops.
 5. Preflight passes, and the reviewed PR merges only through existing green gates.
 6. Rollout rejects other PRs, policies, forks, closed/draft PRs, and a stale
-   dispatch SHA; ordinary privileged paths retain default-branch scripts.
+   event SHA; ordinary privileged paths retain default-branch scripts.
 
 ## Negative Scenarios
 

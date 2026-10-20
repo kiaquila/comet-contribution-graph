@@ -14,7 +14,7 @@
 
 ## Verification
 
-- [x] Local preflight (154 tests in initial full run; 156 tests including the final real receipt fixture).
+- [x] Local preflight (160 tests including the real receipt fixture and rollout guard).
 - [ ] Native Codex review on the final full head SHA; resolve all findings.
 - [ ] Green gates, 120-second stable readiness, protected merge verification.
 
@@ -25,6 +25,9 @@
 - Context7 quota exhausted; use official GitHub Actions documentation.
 - Rerunning the old default-branch parser after the genuine native receipt still
   fails. The connector did not submit the requested compatible formal review.
+- Read-only manual dispatch 39424024329 genuinely passed on `f1cea1d608`, but
+  GitHub kept the separate PR-event check red. Apply the same reviewed validator
+  inside the existing PR job; retain the failed run and branch protection.
 
 ### Decisions
 
@@ -38,8 +41,8 @@
 
 ### Known Issues
 
-- Ordinary PR gates still use the old default-branch parser until merge; perform
-  the constrained dispatch only after final-head native review completes.
+- Other PRs use the old default-branch parser until merge. PR #55 uses the
+  pinned validator; rerun only after final-head native review completes.
 
 ### Verification Evidence
 
