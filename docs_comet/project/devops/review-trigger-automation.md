@@ -53,42 +53,29 @@ The workflow completion observer only handles the repository's `AI Review`
 executes scripts checked out from the default branch; PR code and artifacts are
 never executed by this privileged path.
 
-### First rollout of review-parser changes
+### Gate execution after the receipt-parser rollout
 
-A parser change in a PR cannot teach the default-branch gate its new format.
-A genuine compatible formal review can unblock an ordinary rerun. PR #55 instead
-received only the new native receipt, so its existing `pull_request` job uses a
-narrowly scoped exception for this first deployment:
+Every `AI Review` run checks out the repository default branch. There is no
+PR-specific validator pin or selectable gate revision. The job has only
+contents, pull-request, and issue read permissions, no repository secrets, and
+no persisted checkout credentials. Native review requests remain human-authored
+and the gate uses `trigger_mode=skip`.
 
-- The validator is pinned to `5773da6b5b93d5f91486b2c6d631e56faea4da44`,
-  already reviewed by the native connector in
-  [receipt 6203485501](https://github.com/kiaquila/comet-contribution-graph/pull/55#issuecomment-6203485501).
-  Callers cannot choose another validator revision. No live PR scripts,
-  dependencies, or artifacts are executed.
-- The job has only contents, pull-request, and issue read permissions, no
-  repository secrets, and no persisted checkout credentials. The gate always
-  uses `trigger_mode=skip`; native review requests remain human-authored.
-- The guard requires open, ready, same-repository PR #55 targeting `main`, the
-  `codex/native-review-receipts` source branch, Codex policy, and event head SHA
-  equal to the live PR head. It rejects other PRs and becomes unusable after #55
-  closes. Other PRs and manual dispatches still use default-branch scripts.
-- Request a fresh native review after the final push. After it completes, rerun
-  that head's existing `pull_request` gate if it has already failed waiting for
-  evidence. The pinned validator checks genuine current-head
-  evidence, all blocking threads, and HEAD again before success. A summary or
-  reaction alone still cannot pass.
+For a new head, request native review with the full SHA. Trusted receipt and
+edited-summary events wake the existing PR-event gate; the completion observer
+recovers evidence that arrived during an active attempt. The gate validates the
+actual receipt or formal review, unresolved findings, and the live head before
+success. A summary or reaction alone cannot pass.
 
-This is a real read-only validation run, not a manually published check or a
-replacement review. Verify its logged validator SHA, token permissions, final
-PR SHA, and native receipt. All required checks and resolved conversations still
-apply, followed by the full 120-second readiness hold and protected merge.
-Never disable protection or execute PR scripts with write privileges to repair
-bootstrap. Future changes use the upgraded default-branch gate.
+Verify the real PR job's checkout ref and commit, read-only token permissions,
+reviewed head, and accepted native evidence. Keep every required check and
+conversation gate, then hold the unchanged ready head for the full 120 seconds
+before protected merge. A separate manual dispatch can pass while the PR's own
+check suite remains red; it does not replace the original required PR run.
 
-A manual dispatch on the head can validate the evidence successfully while the
-PR's separate `pull_request` check suite remains red. It does not replace that
-required run; do not delete failed checks or relax protection. The exception
-therefore runs inside the original PR job, not a second check with the same name.
+[PR #55's completion record](https://github.com/kiaquila/comet-contribution-graph/pull/55#issuecomment-6291246263)
+preserves the history of the one-time read-only bootstrap. Its temporary pin and
+guard have been removed now that the receipt-aware validator is on `main`.
 
 The marker author is configured by `aiReviewMarkerAuthorLogin` in
 `.comet-control/config.json`. The default remains `github-actions[bot]`, but it
