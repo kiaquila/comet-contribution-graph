@@ -12,7 +12,8 @@ In scope:
 
 - Update both Claude workflow references to the v1.0.248 commit.
 - Update the OSV scanner workflow reference to the v2.7.0 commit.
-- Record the feature memory required for this control-plane change.
+- Record the feature memory and durable dependency-maintenance entry required
+  for this control-plane change.
 
 Out of scope:
 
