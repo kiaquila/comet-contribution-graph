@@ -2,12 +2,10 @@
 import { appendFileSync } from "node:fs";
 import {
   createAiReviewRequestMarkerBody,
-  hasHeadUpdateBetweenTimestamps,
+  evaluateCodexReviewEvidence,
   isAcceptableClaudeComment,
-  isAcceptableCodexSummaryComment,
   isAcceptableNativeReview,
   latestAiReviewRequestMarker,
-  latestCodexNativeReviewResult,
   latestGeminiNativeReviewResult,
 } from "./ai-review-helpers.mjs";
 import { readConfig } from "./shared.mjs";
@@ -149,6 +147,38 @@ function isAfterRequest(value, requestMarker) {
   );
 }
 
+async function fetchReviewThreads() {
+  const threads = [];
+  let cursor = null;
+  do {
+    const response = await request("/graphql", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        query: `query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              reviewThreads(first: 100, after: $cursor) {
+                nodes { isResolved comments(first: 1) { nodes { body author { login } } } }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+          }
+        }`,
+        variables: { owner, repo, number: Number(prNumber), cursor },
+      }),
+    });
+    const connection = response.data?.repository?.pullRequest?.reviewThreads;
+    if (response.errors || !connection)
+      throw new Error("Could not read native review threads.");
+    threads.push(...connection.nodes);
+    cursor = connection.pageInfo.hasNextPage
+      ? connection.pageInfo.endCursor
+      : null;
+  } while (cursor);
+  return threads;
+}
+
 async function fetchEvidence() {
   if (!(await currentHeadMatches())) return "stale";
 
@@ -184,7 +214,7 @@ async function fetchEvidence() {
     headSha,
     config,
   );
-  if (!requestMarker) return "missing_marker";
+  if (!requestMarker && selectedAgent !== "codex") return "missing_marker";
 
   if (selectedAgent === "claude") {
     return comments.some(
@@ -203,46 +233,20 @@ async function fetchEvidence() {
     const reviewComments = await listPaginated(
       `/repos/${owner}/${repo}/pulls/${prNumber}/comments`,
     );
-    const reviewsAfterRequest = reviews.filter((review) =>
-      isAfterRequest(review.submitted_at, requestMarker),
-    );
-    const latestCodexResult = latestCodexNativeReviewResult(
-      reviewsAfterRequest,
-      reviewComments,
-      headSha,
-      config,
-    );
-    if (latestCodexResult === "pass") return "pass";
-    if (latestCodexResult === "fail") return "fail";
-
     const timeline = await listPaginated(
       `/repos/${owner}/${repo}/issues/${prNumber}/timeline`,
     );
-    const triggerAt =
-      requestMarker.sourceCommentCreatedAt ||
-      requestMarker.requestedAt ||
-      requestMarker.commentCreatedAt;
-    const summaryAccepted = comments.some((comment) => {
-      if (
-        !isAcceptableCodexSummaryComment(
-          comment,
-          headSha,
-          requestMarker,
-          config,
-        )
-      )
-        return false;
-      if (
-        hasHeadUpdateBetweenTimestamps(timeline, triggerAt, comment.created_at)
-      ) {
-        console.warn(
-          `AI Review gate rejected Codex summary ${comment.id}: head moved between trigger ${triggerAt} and summary ${comment.created_at}.`,
-        );
-        return false;
-      }
-      return true;
+    const threads = await fetchReviewThreads();
+    return evaluateCodexReviewEvidence({
+      reviews,
+      reviewComments,
+      comments,
+      threads,
+      timeline,
+      headSha,
+      requestMarker,
+      config,
     });
-    return summaryAccepted ? "pass" : "pending";
   }
 
   if (
@@ -262,9 +266,9 @@ await maybePostTriggerComment();
 
 if (!(await waitForQuietHead())) {
   console.log(
-    `AI Review gate skipped stale run for ${headSha}; PR head changed during debounce.`,
+    `AI Review gate rejected stale run for ${headSha}; PR head changed during debounce.`,
   );
-  process.exit(0);
+  process.exit(1);
 }
 
 const started = Date.now();
@@ -288,11 +292,11 @@ while (Date.now() - started <= maxWaitMs) {
   pollMs = Math.min(pollMs * 2, maxPollMs);
 }
 
-if (outcome === "stale") {
+if (outcome === "stale" || !(await currentHeadMatches())) {
   console.log(
-    `AI Review gate skipped stale run for ${headSha}; PR head moved.`,
+    `AI Review gate rejected stale run for ${headSha}; PR head moved.`,
   );
-  process.exit(0);
+  process.exit(1);
 }
 
 if (outcome === "pass") {
