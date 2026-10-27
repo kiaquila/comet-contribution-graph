@@ -147,3 +147,8 @@ request a human-authored current-head AI review before merge.
   maintenance branch raises the existing transitive floors to `fast-uri` 3.1.9
   and `undici` 6.29.1 to clear their OSV advisories without suppressing or
   weakening the fail-closed scan.
+- ESLint 10.12.0 → 10.13.0 and html-validate 11.16.2 → 11.17.0: retain the
+  existing lint and HTML-validation configuration, preserve the patched
+  `fast-uri` 3.1.9 and `undici` 6.29.1 resolutions from the current base, and
+  verify prototype linting, HTML validation, the Action distribution, and the
+  complete preflight chain without relaxing validation.
