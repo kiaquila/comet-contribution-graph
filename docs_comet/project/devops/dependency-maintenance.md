@@ -140,3 +140,10 @@ request a human-authored current-head AI review before merge.
   set, resolve its peer snapshot against ESLint 10.12.0, accept only the
   corresponding transitive lockfile updates, and verify prototype linting plus
   the complete preflight chain without relaxing configuration.
+- `anthropics/claude-code-action` 1.0.248 → 1.0.254: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, secrets, and prompts, and
+  verify the complete preflight chain before final-head Codex review. The same
+  maintenance branch raises the existing transitive floors to `fast-uri` 3.1.9
+  and `undici` 6.29.1 to clear their OSV advisories without suppressing or
+  weakening the fail-closed scan.
