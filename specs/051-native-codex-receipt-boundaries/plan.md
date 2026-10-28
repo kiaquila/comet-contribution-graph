@@ -9,3 +9,5 @@ Reuse the existing review helpers and request contracts. Isolate complete receip
 | Complete clean catalog and hostile boundaries | `node --test tests/codex-receipt-boundaries.test.mjs`                                               |
 | Existing contracts                            | Repository preflight and native PR checks                                                           |
 | Protected delivery                            | Owner native review; resolved threads; 120 seconds unchanged green evidence; normal protected merge |
+
+Current-service coverage includes the exact security-review help footer and a negative case for text injected into it.

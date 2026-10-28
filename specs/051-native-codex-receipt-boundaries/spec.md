@@ -17,3 +17,5 @@ Receipt presentation parser, regression matrix and workflow documentation only.
 ## Negative Scenario
 
 A clean sentence followed by an authentication vulnerability remains blocked.
+
+Current-service coverage includes the exact security-review help footer and a negative case for text injected into it.

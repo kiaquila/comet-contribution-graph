@@ -18,3 +18,5 @@ A list of forbidden negative words cannot establish that arbitrary prose is clea
 ### Known Issues
 
 Future unknown service formats remain blocked pending a reviewed fixture.
+
+Current-service coverage includes the exact security-review help footer and a negative case for text injected into it.

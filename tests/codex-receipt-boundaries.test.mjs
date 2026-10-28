@@ -93,3 +93,20 @@ test("whole observed bodies, including both help footers and task links", () => 
     );
   }
 });
+
+test("current service help is exact and never hides findings", () => {
+  const footer =
+    '<details><summary>ℹ️ About Codex in GitHub</summary>\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment "@codex review" or "@codex security review".\n\nCodex reacts with 👀 while any review is running, comments if it has suggestions, and reacts with 👍 once all reviews finish with no findings.\n</details>';
+  const body = `<!-- codex-review-receipt:v1 -->\nCodex Review: Didn't find any major issues.\n**Reviewed commit:** \`${head}\``;
+  assert.equal(acceptable(record(body + "\n" + footer)), true);
+  assert.equal(
+    acceptable(
+      record(
+        body +
+          "\n" +
+          footer.replace("</details>", "Credentials leak.</details>"),
+      ),
+    ),
+    false,
+  );
+});
