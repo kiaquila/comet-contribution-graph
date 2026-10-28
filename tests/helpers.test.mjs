@@ -118,7 +118,7 @@ test("Codex no-findings summary comment is accepted from trusted bot only", () =
         body: "Codex Review: Didn't find any major issues for abc123def4. Nice work!",
         user: { login: "chatgpt-codex-connector[bot]" },
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     true,
   );
@@ -129,7 +129,7 @@ test("Codex no-findings summary comment is accepted from trusted bot only", () =
         body: "Codex Review: Found a P1 issue.",
         user: { login: "chatgpt-codex-connector[bot]" },
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     false,
   );
@@ -140,7 +140,7 @@ test("Codex no-findings summary comment is accepted from trusted bot only", () =
         body: "Codex Review: Didn't find any major issues.",
         user: { login: "chatgpt-codex-connector[bot]" },
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     false,
   );
@@ -151,7 +151,7 @@ test("Codex no-findings summary comment is accepted from trusted bot only", () =
         body: "Codex Review: Didn't find any major issues.",
         user: { login: "codex-fan-99" },
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     false,
   );
@@ -160,8 +160,8 @@ test("Codex no-findings summary comment is accepted from trusted bot only", () =
 test("forged AI review request markers from non-bot authors are rejected", () => {
   const body = createAiReviewRequestMarkerBody({
     agent: "codex",
-    headSha: "abc123def456",
-    requestId: "10-abc123def456",
+    headSha: "abc123def4560000000000000000000000000000",
+    requestId: "10-abc123def4560000000000000000000000000000",
     sourceCommentId: "10",
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     requestedAt: "2026-04-29T19:29:46Z",
@@ -175,11 +175,19 @@ test("forged AI review request markers from non-bot authors are rejected", () =>
   };
 
   assert.equal(
-    isAiReviewRequestMarkerComment(forged, "codex", "abc123def456"),
+    isAiReviewRequestMarkerComment(
+      forged,
+      "codex",
+      "abc123def4560000000000000000000000000000",
+    ),
     false,
   );
   assert.equal(
-    latestAiReviewRequestMarker([forged], "codex", "abc123def456"),
+    latestAiReviewRequestMarker(
+      [forged],
+      "codex",
+      "abc123def4560000000000000000000000000000",
+    ),
     null,
   );
 });
@@ -187,17 +195,17 @@ test("forged AI review request markers from non-bot authors are rejected", () =>
 test("AI review request markers bind trusted comments to a head SHA", () => {
   const body = createAiReviewRequestMarkerBody({
     agent: "codex",
-    headSha: "abc123def456",
-    requestId: "10-abc123def456",
+    headSha: "abc123def4560000000000000000000000000000",
+    requestId: "10-abc123def4560000000000000000000000000000",
     sourceCommentId: "10",
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     requestedAt: "2026-04-29T19:29:46Z",
   });
 
   assert.deepEqual(extractAiReviewRequestMarker(body), {
-    requestId: "10-abc123def456",
+    requestId: "10-abc123def4560000000000000000000000000000",
     agent: "codex",
-    sha: "abc123def456",
+    sha: "abc123def4560000000000000000000000000000",
     sourceCommentId: "10",
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     requestedAt: "2026-04-29T19:29:46Z",
@@ -206,7 +214,7 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     extractAiReviewRequestMarker(
       body.replace("comet:ai-review-request", "unicorn-hub:ai-review-request"),
     ).requestId,
-    "10-abc123def456",
+    "10-abc123def4560000000000000000000000000000",
   );
   assert.equal(
     extractAiReviewRequestMarker(
@@ -228,7 +236,11 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     user: { login: "github-actions[bot]" },
   };
   assert.equal(
-    isAiReviewRequestMarkerComment(markerComment, "codex", "abc123def456"),
+    isAiReviewRequestMarkerComment(
+      markerComment,
+      "codex",
+      "abc123def4560000000000000000000000000000",
+    ),
     true,
   );
   assert.equal(
@@ -238,14 +250,17 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
         user: { login: "repo-owner" },
       },
       "codex",
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     false,
   );
   assert.equal(
-    latestAiReviewRequestMarker([markerComment], "codex", "abc123def456")
-      .requestId,
-    "10-abc123def456",
+    latestAiReviewRequestMarker(
+      [markerComment],
+      "codex",
+      "abc123def4560000000000000000000000000000",
+    ).requestId,
+    "10-abc123def4560000000000000000000000000000",
   );
   assert.equal(
     isTrustedAiReviewMarkerAuthorLogin("github-actions[bot]", {
@@ -254,16 +269,26 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     true,
   );
   assert.equal(
-    isAiReviewRequestMarkerComment(markerComment, "codex", "abc123def456", {
-      aiReviewMarkerAuthorLogin: "comet-actions[bot]",
-    }),
+    isAiReviewRequestMarkerComment(
+      markerComment,
+      "codex",
+      "abc123def4560000000000000000000000000000",
+      {
+        aiReviewMarkerAuthorLogin: "comet-actions[bot]",
+      },
+    ),
     true,
   );
   assert.equal(
-    latestAiReviewRequestMarker([markerComment], "codex", "abc123def456", {
-      aiReviewMarkerAuthorLogin: "comet-actions[bot]",
-    }).requestId,
-    "10-abc123def456",
+    latestAiReviewRequestMarker(
+      [markerComment],
+      "codex",
+      "abc123def4560000000000000000000000000000",
+      {
+        aiReviewMarkerAuthorLogin: "comet-actions[bot]",
+      },
+    ).requestId,
+    "10-abc123def4560000000000000000000000000000",
   );
 
   const customMarkerComment = {
@@ -274,7 +299,7 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     isAiReviewRequestMarkerComment(
       customMarkerComment,
       "codex",
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
     ),
     false,
   );
@@ -282,7 +307,7 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     isAiReviewRequestMarkerComment(
       customMarkerComment,
       "codex",
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
     ),
     true,
@@ -291,17 +316,17 @@ test("AI review request markers bind trusted comments to a head SHA", () => {
     latestAiReviewRequestMarker(
       [customMarkerComment],
       "codex",
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       { aiReviewMarkerAuthorLogin: "comet-actions[bot]" },
     ).requestId,
-    "10-abc123def456",
+    "10-abc123def4560000000000000000000000000000",
   );
 });
 
 test("Codex no-findings summary is accepted only after a matching request marker", () => {
   const requestMarker = {
     agent: "codex",
-    sha: "abc123def456",
+    sha: "abc123def4560000000000000000000000000000",
     requestedAt: "2026-04-29T19:29:46Z",
     sourceCommentCreatedAt: "2026-04-29T19:29:46Z",
     commentCreatedAt: "2026-04-29T19:30:00Z",
@@ -315,7 +340,7 @@ test("Codex no-findings summary is accepted only after a matching request marker
         user: { login: "chatgpt-codex-connector[bot]" },
         created_at: "2026-04-29T19:32:55Z",
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       requestMarker,
     ),
     true,
@@ -328,7 +353,7 @@ test("Codex no-findings summary is accepted only after a matching request marker
         user: { login: "chatgpt-codex-connector[bot]" },
         created_at: "2026-04-29T19:29:46Z",
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       requestMarker,
     ),
     true,
@@ -341,7 +366,7 @@ test("Codex no-findings summary is accepted only after a matching request marker
         user: { login: "chatgpt-codex-connector[bot]" },
         created_at: "2026-04-29T19:29:50Z",
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       requestMarker,
     ),
     true,
@@ -354,7 +379,7 @@ test("Codex no-findings summary is accepted only after a matching request marker
         user: { login: "chatgpt-codex-connector[bot]" },
         created_at: "2026-04-29T19:00:00Z",
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       requestMarker,
     ),
     false,
@@ -367,7 +392,7 @@ test("Codex no-findings summary is accepted only after a matching request marker
         user: { login: "chatgpt-codex-connector[bot]" },
         created_at: "2026-04-29T19:32:55Z",
       },
-      "abc123def456",
+      "abc123def4560000000000000000000000000000",
       "2026-04-29T19:29:46Z",
     ),
     false,
