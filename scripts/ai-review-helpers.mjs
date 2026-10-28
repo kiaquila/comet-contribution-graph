@@ -1,3 +1,4 @@
+import { isStrictNativeCodexReceipt } from "./codex-native-receipt.mjs";
 export const trustedAssociations = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 export function isTrustedAssociation(value) {
@@ -218,100 +219,31 @@ export function isAcceptableCodexSummaryComment(
   requestMarker = null,
   config = {},
 ) {
-  if (!isTrustedReviewLogin(comment?.user?.login, "codex", config))
-    return false;
-  let body = String(comment?.body || "").trim();
-  const receipt = "<!-- codex-review-receipt:v1 -->";
-  const isReceipt = body.startsWith(receipt);
-  if (isReceipt) body = body.slice(receipt.length).trim();
-  // Never strip arbitrary HTML, multiple markers, or an unknown receipt version.
-  if (/<!--|codex-review-receipt/i.test(body)) return false;
-  // The native About block is presentation only, not review evidence.
-  const about = body.match(
-    /\s*<details>\s*<summary>\s*(?:ℹ️\s*)?About Codex in GitHub\s*<\/summary>[^]*<\/details>\s*$/i,
-  );
-  if (about) {
-    if (
-      (about[0].match(/<details>/gi) || []).length !== 1 ||
-      containsBlockingSeverity(about[0], "codex")
-    )
-      return false;
-    body = body.slice(0, about.index).trim();
-  }
   if (
-    !/^Codex Review:\s*did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues\b/i.test(
-      body,
-    )
+    !isTrustedReviewLogin(comment?.user?.login, "codex", config) ||
+    !isStrictNativeCodexReceipt(comment?.body, headSha, {
+      allowUnboundLegacy: true,
+    })
   )
     return false;
-  const verdictTail = body
-    .split(/\r?\n/)[0]
-    .replace(
-      /^Codex Review:\s*did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues\b/i,
-      "",
+  const bound =
+    /\*\*Reviewed commit:\*\*|major issues for [a-f0-9]{10,40}\./i.test(
+      comment.body,
     );
-  if (
-    /\b(?:issues?|findings?|problems?|blocking|blocked|errors?|not|unfinished|in_progress|cancelled)\b/i.test(
-      verdictTail,
-    )
-  )
+  if (!requestMarker) return bound;
+  if (requestMarker.agent !== "codex" || requestMarker.sha !== headSha)
     return false;
-  if (containsBlockingSeverity(body, "codex")) return false;
-  if (
-    /\b(?:but|however|found|pending|incomplete|failed|changes requested|unresolved)\b/i.test(
-      body,
-    )
-  )
-    return false;
-
-  const lines = body.split(/\r?\n/).filter((line) => line.trim());
-  if (
-    lines
-      .slice(1)
-      .some(
-        (line) => !/^\*\*Reviewed commit:\*\* `[a-f0-9]{10,40}`$/i.test(line),
-      )
-  )
-    return false;
-  const fields = [
-    ...body.matchAll(/^\*\*Reviewed commit:\*\* `([a-f0-9]{10,40})`$/gim),
-  ];
-  if (fields.length > 1) return false;
-  if (
-    isReceipt &&
-    (!/^[a-f0-9]{40}$/i.test(headSha || "") || fields.length !== 1)
-  )
-    return false;
-
-  const shas = [...body.matchAll(/\b[a-f0-9]{7,40}\b/gi)].map(
-    (match) => match[0],
-  );
-  if (shas.length > 0) {
-    return shas.every(
-      (sha) =>
-        (sha.length === 10 || sha.length === 40) &&
-        String(headSha || "").startsWith(sha),
-    );
-  }
-  if (
-    isReceipt ||
-    !requestMarker ||
-    requestMarker.agent !== "codex" ||
-    requestMarker.sha !== headSha
-  )
-    return false;
-  const requestedAt = Date.parse(
+  const requested = Date.parse(
     requestMarker.sourceCommentCreatedAt ||
       requestMarker.requestedAt ||
       requestMarker.commentCreatedAt ||
       "",
   );
-  // Only the legacy format may use timestamp/timeline proof without a SHA.
-  const createdAt = Date.parse(comment?.created_at || "");
+  const created = Date.parse(comment.created_at || "");
   return (
-    Number.isFinite(requestedAt) &&
-    Number.isFinite(createdAt) &&
-    createdAt >= requestedAt
+    Number.isFinite(requested) &&
+    Number.isFinite(created) &&
+    created >= requested
   );
 }
 

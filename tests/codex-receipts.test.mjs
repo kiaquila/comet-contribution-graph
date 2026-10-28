@@ -84,7 +84,8 @@ test("observed native receipt and legacy response pass with commit proof", () =>
     receipt,
     legacy,
     receipt.replace("2667f79cd7`", `${headSha}\``),
-    `${receipt}\n\n<details><summary>About Codex in GitHub</summary>Documentation</details>`,
+    receipt +
+      '\n\n<details> <summary>\u2139\ufe0f About Codex in GitHub</summary>\n<br/>\n\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment "@codex review".\n\nIf Codex has suggestions, it will comment; otherwise it will react with \ud83d\udc4d.\n\n\n\n\nCodex can also answer questions or update the PR. Try commenting "@codex address that feedback".\n            \n</details>',
   ]) {
     assert.equal(
       isAcceptableCodexSummaryComment(comment(body), headSha),
