@@ -152,3 +152,11 @@ request a human-authored current-head AI review before merge.
   `fast-uri` 3.1.9 and `undici` 6.29.1 resolutions from the current base, and
   verify prototype linting, HTML validation, the Action distribution, and the
   complete preflight chain without relaxing validation.
+- `anthropics/claude-code-action` 1.0.254 → 1.0.263: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, secrets, and prompts, and
+  verify the complete preflight chain before final-head Codex review. The same
+  maintenance branch raises transitive `minimatch` to 11.0.1 to remediate
+  `GHSA-g3hv-75wg-m249` without weakening the fail-closed OSV scan; the global
+  seven-day release cooldown remains intact, with only the fixed version
+  exempted for immediate installation.
