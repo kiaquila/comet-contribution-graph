@@ -1,3 +1,4 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
+  - minimatch@11.0.1
   - source-map-js@1.2.2
