@@ -160,3 +160,9 @@ request a human-authored current-head AI review before merge.
   `GHSA-g3hv-75wg-m249` without weakening the fail-closed OSV scan; the global
   seven-day release cooldown remains intact, with only the fixed version
   exempted for immediate installation.
+- `eslint-plugin-unicorn` v77 → v78: preserve the existing flat-config rule set
+  on ESLint 10.13.0, retain the patched `minimatch` 11.0.1 resolution, accept
+  the plugin's optional TypeScript 7 peer snapshot and corresponding transitive
+  parser dependencies, and verify prototype linting plus the complete preflight
+  chain without relaxing configuration. New v78 rules are not enabled as part
+  of dependency maintenance.
