@@ -166,3 +166,7 @@ request a human-authored current-head AI review before merge.
   parser dependencies, and verify prototype linting plus the complete preflight
   chain without relaxing configuration. New v78 rules are not enabled as part
   of dependency maintenance.
+- `anthropics/claude-code-action` 1.0.263 → 1.0.266: keep the Claude agent and
+  dormant Claude review workflows pinned to the same immutable release commit,
+  preserve their triggers, permissions, inputs, secrets, and prompts, and
+  verify the complete preflight chain before final-head Codex review.
