@@ -170,3 +170,9 @@ request a human-authored current-head AI review before merge.
   dormant Claude review workflows pinned to the same immutable release commit,
   preserve their triggers, permissions, inputs, secrets, and prompts, and
   verify the complete preflight chain before final-head Codex review.
+- Grouped development-tooling maintenance (`@types/node` 26.6.5 → 26.6.6,
+  ESLint 10.13.0 → 10.14.0, `globals` 17.13.0 → 17.14.0, and html-validate
+  11.17.0 → 11.18.0): preserve the existing flat-config and validation policy,
+  retain the patched `fast-uri` 3.1.9 and `undici` 6.29.1 resolutions, accept
+  the lockfile's `minimatch` 11.0.3 update, and verify a frozen install plus the
+  complete preflight chain before final-head Codex review.
