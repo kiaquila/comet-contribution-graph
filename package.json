@@ -30,13 +30,13 @@
     "@actions/exec": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@vercel/ncc": "^0.45.0",
-    "eslint": "10.13.0",
+    "eslint": "10.14.0",
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^79",
     "globals": "^17",
-    "html-validate": "^11.17.0",
+    "html-validate": "^11.18.0",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   },
