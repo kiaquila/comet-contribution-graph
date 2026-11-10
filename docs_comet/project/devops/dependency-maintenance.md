@@ -176,3 +176,8 @@ request a human-authored current-head AI review before merge.
   retain the patched `fast-uri` 3.1.9 and `undici` 6.29.1 resolutions, accept
   the lockfile's `minimatch` 11.0.3 update, and verify a frozen install plus the
   complete preflight chain before final-head Codex review.
+- `eslint-plugin-unicorn` v78 → v79: preserve the existing flat ESM config and
+  explicit `unicorn/no-array-callback-reference` rule on ESLint 10.14.0, retain
+  the current security-fixed resolutions, and verify prototype linting plus the
+  complete preflight chain. Do not enable `unicorn/no-top-level-side-effects`
+  or otherwise adopt its v79 behavior change during dependency maintenance.
