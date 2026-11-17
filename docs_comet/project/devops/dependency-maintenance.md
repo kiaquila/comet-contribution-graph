@@ -185,3 +185,7 @@ request a human-authored current-head AI review before merge.
   `anthropics/claude-code-action` 1.0.266 → 1.0.269: retain immutable commit
   pins, preserve workflow triggers, permissions, inputs, secrets, and prompts,
   and verify the complete preflight chain before final-head Codex review.
+- html-validate 11.18.0 → 11.21.0: preserve the existing validation rules and
+  presets, accept the package's `semver` 7.8.6 lockfile deduplication, and
+  verify HTML validation plus the complete preflight chain without relaxing
+  configuration.
