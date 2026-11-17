@@ -181,3 +181,7 @@ request a human-authored current-head AI review before merge.
   the current security-fixed resolutions, and verify prototype linting plus the
   complete preflight chain. Do not enable `unicorn/no-top-level-side-effects`
   or otherwise adopt its v79 behavior change during dependency maintenance.
+- `pnpm/action-setup` 6.1.0 → 6.1.1 and
+  `anthropics/claude-code-action` 1.0.266 → 1.0.269: retain immutable commit
+  pins, preserve workflow triggers, permissions, inputs, secrets, and prompts,
+  and verify the complete preflight chain before final-head Codex review.
