@@ -32,12 +32,12 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "@vercel/ncc": "^0.45.0",
-    "eslint": "10.14.0",
+    "eslint": "10.15.0",
     "eslint-plugin-html": "^8",
     "eslint-plugin-unicorn": "^79",
     "globals": "^17",
-    "html-validate": "^11.21.0",
-    "prettier": "^3.9.10",
+    "html-validate": "^11.21.1",
+    "prettier": "^3.10.1",
     "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@10.33.0",
