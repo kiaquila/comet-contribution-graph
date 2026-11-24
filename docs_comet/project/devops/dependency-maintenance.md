@@ -197,3 +197,10 @@ request a human-authored current-head AI review before merge.
   comment-driven Claude workflows so their existing `--allowedTools` lists
   remain strict; verify the complete preflight chain and fail-closed OSV scan
   before final-head Codex review.
+- Grouped development-tooling maintenance (ESLint 10.14.0 → 10.15.0,
+  html-validate 11.21.0 → 11.21.1, and Prettier 3.9.10 → 3.10.1):
+  preserve the existing flat ESLint config, HTML-validation policy, and
+  formatting configuration; accept the packages' corresponding transitive
+  lockfile updates, including `minimatch` 11.0.8; and verify a frozen install,
+  prototype linting, HTML validation, formatting, Action distribution, and the
+  complete preflight chain without relaxing configuration.
