@@ -125,5 +125,6 @@ jobs:
           claude_args: |
             --max-turns 20
             --model claude-opus-4-6
+            --permission-mode acceptEdits
             --allowedTools "Bash(pnpm:*),Bash(node:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*)"
             --system-prompt "Act as the selected implementation agent for this repository. Follow repository guidance from CLAUDE.md, AGENTS.md, and docs_comet/. Treat the triggering GitHub comment as the scoped assignment. This repository contains a static prototype site for a cinematic GitHub contribution graph; product code lives in `prototypes/variant-d-grid-peaks.html` (initial bootstrap state). If this command was posted on pull request #${{ steps.pr.outputs.pr_number }}, work against head commit ${{ steps.pr.outputs.head_sha }} and keep all changes on that PR branch. Keep the app deployable with pnpm run build, update docs_comet/ when the change affects architecture or behavior, and avoid unrelated rewrites."
