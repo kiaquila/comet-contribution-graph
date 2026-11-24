@@ -189,3 +189,11 @@ request a human-authored current-head AI review before merge.
   presets, accept the package's `semver` 7.8.6 lockfile deduplication, and
   verify HTML validation plus the complete preflight chain without relaxing
   configuration.
+- `anthropics/claude-code-action` 1.0.269 → 1.0.276 and
+  `google/osv-scanner-action/osv-scanner-action` 2.7.0 → 2.7.1: retain
+  immutable commit pins and preserve workflow triggers, permissions, inputs,
+  secrets, and prompts. Because Claude Code Action 1.0.273 changes the default
+  session mode, set `--permission-mode acceptEdits` explicitly in both
+  comment-driven Claude workflows so their existing `--allowedTools` lists
+  remain strict; verify the complete preflight chain and fail-closed OSV scan
+  before final-head Codex review.
